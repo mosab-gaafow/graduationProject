@@ -31,7 +31,7 @@ model User {
   vehicles    Vehicle[]  @relation("UserVehicles")
   // trips       Trip[]     @relation("UserTrips")
   bookings    Booking[]  @relation("UserBookings")
-  activityLog ActivityLog[]
+  // activityLog ActivityLog[]
 }
 
 model Vehicle {
@@ -103,13 +103,13 @@ model Booking {
   user        User          @relation(name: "UserBookings", fields: [userId], references: [id])
 }
 
-model ActivityLog {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  action      String
-  entity      String
-  entityId    String?  @db.ObjectId
-  description String?
-  timestamp   DateTime @default(now())
-  user        User     @relation(fields: [userId], references: [id])
-}
+// model ActivityLog {
+//   id          String   @id @default(auto()) @map("_id") @db.ObjectId
+//   userId      String   @db.ObjectId
+//   action      String
+//   entity      String
+//   entityId    String?  @db.ObjectId
+//   description String?
+//   timestamp   DateTime @default(now())
+//   user        User     @relation(fields: [userId], references: [id])
+// }
