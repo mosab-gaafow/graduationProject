@@ -15,7 +15,7 @@ router.post('/register', async (req, res) => {
     const { name, email, password, phone } = req.body;
 
     if (!email || !name || !password) {
-      return res.status(400).json({ message: 'Please fill all fields' });
+      return res.status(400).json({ message: 'Please fill all fields' }); // validate all fields
     }
 
     if (password.length < 6) {
