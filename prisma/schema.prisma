@@ -1,0 +1,94 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  vehicle_owner
+  traveler
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  canceled
+}
+
+model User {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  email       String     @unique
+  password    String
+  role        UserRole
+  name        String
+  phone       String?
+  image       String?
+  isVerified  Boolean    @default(false)
+  isDeleted   Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  vehicles    Vehicle[]  @relation("UserVehicles")
+  trips       Trip[]     @relation("UserTrips")
+  bookings    Booking[]  @relation("UserBookings")
+  activityLog ActivityLog[]
+}
+
+model Vehicle {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  plateNumber String   @unique
+  model       String
+  capacity    Int
+  color       String?
+  type        String?
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  owner       User     @relation(name: "UserVehicles", fields: [userId], references: [id])
+}
+
+model Trip {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdById    String   @db.ObjectId
+  origin         String
+  destination    String
+  date           DateTime
+  time           String
+  price          Float
+  totalSeats     Int
+  availableSeats Int
+  vehicleIds     String[] // references to Vehicle IDs
+  createdBy      User     @relation(name: "UserTrips", fields: [createdById], references: [id])
+  bookings       Booking[]
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Booking {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  tripId      String        @db.ObjectId
+  userId      String        @db.ObjectId
+  seatsBooked Int
+  status      BookingStatus
+  bookingTime DateTime      @default(now())
+  trip        Trip          @relation(fields: [tripId], references: [id])
+  user        User          @relation(name: "UserBookings", fields: [userId], references: [id])
+}
+
+model ActivityLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  action      String
+  entity      String
+  entityId    String?  @db.ObjectId
+  description String?
+  timestamp   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
