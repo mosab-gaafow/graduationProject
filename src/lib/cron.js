@@ -1,8 +1,7 @@
 import cron from 'cron';
 import https from 'https';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../prisma/client.js';
 
-const prisma = new PrismaClient();
 
 const job = new cron.CronJob('*/5 * * * *', async function () {
   // 🔄 1. KEEP RENDER AWAKE

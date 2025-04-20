@@ -1,11 +1,11 @@
 import express from 'express';
 import authRoutes from './routes/authRoutes.js';
-import vehicleRoutes from './routes/vehicleRoutes.js';
 import { connectDB } from './lib/db.js';
 import cors from 'cors';
 import job from './lib/cron.js';
 import tripRoutes from './routes/tripRoutes.js'
-import bookingRoutes from './routes/bookingRoutes.js'
+// import bookingRoutes from './routes/bookingRoutes.js'
+// import vehicleRoutes from './routes/vehicleRoutes.js';
 import dotenv from 'dotenv';
 dotenv.config(); 
 
@@ -21,9 +21,9 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/api/auth", authRoutes)
-app.use('/api/vehicles', vehicleRoutes);
+// app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/trips', tripRoutes);
-app.use('/api/bookings', bookingRoutes);
+// app.use('/api/bookings', bookingRoutes);
 
 
 app.listen(PORT, () => {

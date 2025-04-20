@@ -42,6 +42,7 @@ router.post('/', protectRoute, async (req, res) => {
 // Get all trips (filter by origin, destination, or date if provided)
 router.get('/', protectRoute, async (req, res) => {
     try {
+      //  console.log("🔥 User making request:", req.user);
       const { origin, destination, date } = req.query;
   
       const filters = {
