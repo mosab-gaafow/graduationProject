@@ -40,28 +40,28 @@ router.post('/', async (req, res) => {
 
 // Get all trips (filter by origin, destination, or date if provided)
 router.get('/', async (req, res) => {
-  try {
-    const { origin, destination, date } = req.query;
-
-    const filters = {
-      isDeleted: false,
-    };
-
-    if (origin) filters.origin = origin;
-    if (destination) filters.destination = destination;
-    if (date) filters.date = new Date(date);
-
-    const trips = await prisma.trip.findMany({
-      where: filters,
-      orderBy: { date: 'asc' },
-    });
-
-    res.json(trips);
-  } catch (error) {
-    console.error('Get trips error:', error);
-    res.status(500).json({ error: 'Failed to get trips' });
-  }
-});
+    try {
+      const { origin, destination, date } = req.query;
+  
+      const filters = {
+        isDeleted: false,
+      };
+  
+      if (origin) filters.origin = origin;
+      if (destination) filters.destination = destination;
+      if (date) filters.date = new Date(date);
+  
+      const trips = await prisma.trip.findMany({
+        where: filters,
+        orderBy: { date: 'asc' },
+      });
+  
+      res.json(trips);
+    } catch (error) {
+      console.error('🔥 Detailed trips fetch error:', JSON.stringify(error, null, 2));
+      res.status(500).json({ error: 'Failed to get trips', details: error.message });
+    }
+  });
 
 // Get trip by ID
 router.get('/:id', async (req, res) => {
