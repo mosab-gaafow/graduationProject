@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { ObjectId } from 'mongodb';
-import protectRoute from '../middleware/auth.middleware';
+import protectRoute from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
