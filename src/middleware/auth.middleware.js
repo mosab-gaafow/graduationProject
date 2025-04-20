@@ -1,33 +1,43 @@
 import jwt from 'jsonwebtoken';
-
-import User from '../models/User.js';
+import prisma from '../../prisma/client.js'; // Adjust the path if needed
 
 const protectRoute = async (req, res, next) => {
-    try {
-        const authHeader = req.headers.authorization;
+  try {
+    const authHeader = req.headers.authorization;
 
-        if (!authHeader || !authHeader.startsWith("Bearer ")) {
-            return res.status(401).json({ message: "Unauthorized, Access denied" });
-        }
-
-        const token = authHeader.split(" ")[1]; // ✅ Extract the token correctly
-
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        const user = await User.findById(decoded.userId).select("-password");
-
-        if (!user) {
-            return res.status(401).json({ message: "Token is not valid" });
-        }
-
-        req.user = user;
-        next();
-
-    } catch (e) {
-        console.log("Auth error:", e.message);
-        return res.status(401).json({ message: "Unauthorized, Access denied" });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Unauthorized, access denied" });
     }
-};
 
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        image: true,
+        role: true,
+        isVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user || user.isDeleted) {
+      return res.status(401).json({ message: "Token is not valid or user is deleted" });
+    }
+
+    req.user = user;
+    next();
+
+  } catch (e) {
+    console.error("Auth error:", e.message);
+    return res.status(401).json({ message: "Unauthorized, access denied" });
+  }
+};
 
 export default protectRoute;
