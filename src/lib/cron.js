@@ -1,11 +1,48 @@
 import cron from 'cron';
 import https from 'https';
+import { PrismaClient } from '@prisma/client';
 
-const job = new cron.CronJob("*/14 * * * *", function () {
-    https.get(process.env.APT_URL, (res) => {
-        if(res.statusCode === 200)  console.error(`GET request sent successfully. Status Code: ${res.statusCode}`);   
-        else console.log(`GET request failed. Status Code: ${res.statusCode}`);
-    }).on('error', (e) => console.error("Error while sending GET request: ", e));
+const prisma = new PrismaClient();
+
+const job = new cron.CronJob('*/5 * * * *', async function () {
+  // 🔄 1. KEEP RENDER AWAKE
+  https.get(process.env.API_URL, (res) => {
+    if (res.statusCode === 200)
+      console.log(`[KEEP ALIVE] GET request successful. Status: ${res.statusCode}`);
+    else
+      console.error(`[KEEP ALIVE] GET request failed. Status: ${res.statusCode}`);
+  }).on('error', (e) => console.error('Error in keep-alive GET:', e));
+
+  // ⏳ 2. AUTO-EXPIRE OLD BOOKINGS
+  const expirationMinutes = 15;
+  const cutoff = new Date(Date.now() - expirationMinutes * 60 * 1000);
+
+  const expiredBookings = await prisma.booking.findMany({
+    where: {
+      status: 'PENDING',
+      bookingTime: { lt: cutoff },
+      isDeleted: false
+    },
+  });
+
+  for (const booking of expiredBookings) {
+    await prisma.booking.update({
+      where: { id: booking.id },
+      data: {
+        status: 'EXPIRED',
+        expiredAt: new Date()
+      },
+    });
+
+    await prisma.trip.update({
+      where: { id: booking.tripId },
+      data: {
+        availableSeats: { increment: booking.seatsBooked }
+      }
+    });
+
+    console.log(`[AUTO-CANCEL] Booking ${booking.id} marked as EXPIRED.`);
+  }
 });
 
-export default  job;
+export default job;

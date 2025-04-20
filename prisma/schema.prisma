@@ -15,11 +15,6 @@ enum UserRole {
   traveler
 }
 
-enum BookingStatus {
-  pending
-  confirmed
-  canceled
-}
 
 model User {
   id          String     @id @default(auto()) @map("_id") @db.ObjectId
@@ -62,9 +57,22 @@ enum VehicleType{
   Coaster
 }
 
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED     // Auto-cancelled by CRON after X mins
+}
+
+enum TripStatus {
+  PENDING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
 model Trip {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  // createdById    String   @db.ObjectId
   origin         String
   destination    String
   date           DateTime
@@ -72,12 +80,12 @@ model Trip {
   price          Float
   totalSeats     Int
   availableSeats Int
-  vehicleIds     String[] // references to Vehicle IDs
-  // createdBy      User     @relation(name: "UserTrips", fields: [createdById], references: [id])
+  vehicleIds     String[]
   bookings       Booking[]
   isDeleted      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  status         TripStatus @default(PENDING) // added
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model Booking {
@@ -85,8 +93,12 @@ model Booking {
   tripId      String        @db.ObjectId
   userId      String        @db.ObjectId
   seatsBooked Int
-  status      BookingStatus
+  status      BookingStatus @default(PENDING)
   bookingTime DateTime      @default(now())
+  confirmedAt DateTime?     // For admin-approved time
+  expiredAt   DateTime?     // If expired via CRON
+  cancelledAt DateTime?     // If cancelled
+  isDeleted   Boolean       @default(false)
   trip        Trip          @relation(fields: [tripId], references: [id])
   user        User          @relation(name: "UserBookings", fields: [userId], references: [id])
 }

@@ -5,6 +5,8 @@ import vehicleRoutes from './routes/vehicleRoutes.js';
 import { connectDB } from './lib/db.js';
 import cors from 'cors';
 import job from './lib/cron.js';
+import tripRoutes from './routes/tripRoutes.js'
+import bookingRoutes from './routes/bookingRoutes.js'
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -19,6 +21,8 @@ app.use(cors());
 
 app.use("/api/auth", authRoutes)
 app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/trips', tripRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 
 app.listen(PORT, () => {

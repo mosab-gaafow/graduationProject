@@ -1,114 +1,125 @@
+// bookingRoutes.js
 import express from 'express';
-import jwt from 'jsonwebtoken';
-import cloudinary from '../lib/cloudinary.js';
-import Book from '../models/Book.js';
+import { PrismaClient } from '@prisma/client';
 import protectRoute from '../middleware/auth.middleware.js';
+
 const router = express.Router();
 
+
+
+/// CREATE a booking
 router.post('/', protectRoute, async (req, res) => {
-    try{
-
-        const {title, caption, rating, image} = req.body;
-
-        if(!image || !title || !caption || !rating){
-            return res.status(400).json({message: "Please fill all fields"})
+    try {
+      const { tripId, seatsBooked } = req.body;
+      const userId = req.user.id; // from middleware
+  
+      if (!tripId || !seatsBooked) return res.status(400).json({ error: 'Trip ID and seats required' });
+  
+      const trip = await prisma.trip.findFirst({
+        where: { id: tripId, isDeleted: false, status: 'PENDING' }
+      });
+  
+      if (!trip) return res.status(404).json({ error: 'Trip not found or not bookable' });
+  
+      if (trip.availableSeats < seatsBooked)
+        return res.status(400).json({ error: 'Not enough seats available' });
+  
+      const booking = await prisma.booking.create({
+        data: {
+          tripId,
+          userId,
+          seatsBooked,
+          status: 'PENDING'
         }
-
-        // upload the image
-        const uploadResponse= await cloudinary.uploader.upload(image);
-        const imageUrl = uploadResponse.secure_url;
-        
-        const newBook = new Book({
-            title,
-            caption,
-            rating,
-            image: imageUrl,
-            user: req.user._id
-        });
-
-        await newBook.save();
-        res.status(201).json(newBook);
-
-    }catch(e){
-        console.log(e.message)
-        res.status(500).json({message: e.message})
+      });
+  
+      await prisma.trip.update({
+        where: { id: tripId },
+        data: { availableSeats: { decrement: seatsBooked } }
+      });
+  
+      res.status(201).json(booking);
+    } catch (err) {
+      res.status(500).json({ error: 'Booking failed', details: err.message });
     }
+  });
+  
+
+/// GET all bookings
+router.get('/', async (req, res) => {
+  try {
+    const bookings = await prisma.booking.findMany({
+      include: { trip: true, user: true },
+    });
+    res.json(bookings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-
-router.get("/", protectRoute, async (req, res) => {
-    try{
-
-        const page = req.query.page || 1;;
-        const limit = req.query.limit || 5;
-        const skip = (page - 1) * limit;
-
-        const totalBooks = await Book.countDocuments({});
-
-        const books = await Book.find().sort({createdAt: -1})
-        .skip(skip)
-        .limit(limit)
-        .populate("user", "username profileImage")
-
-        
-        res.status(200).json({
-            books,
-            currentPage: page,
-            totalBooks,
-            totalPages: Math.ceil(totalBooks / limit),
-        });
-    }catch(e){
-        console.log(e.message)
-        res.status(500).json({message: e.message})
-    }
+/// GET single booking by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: req.params.id },
+      include: { trip: true, user: true },
+    });
+    if (!booking) return res.status(404).json({ message: 'Booking not found' });
+    res.json(booking);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
+/// UPDATE booking
+router.put('/:id', async (req, res) => {
+  try {
+    const { seatsBooked, status } = req.body;
 
-router.delete("/:id", protectRoute, async (req, res) => {
-    try{
-        const bookId = req.params.id;
-        const book = await Book.findById(bookId);
-        if(!book){
-            return res.status(404).json({message: "Book not found"})
-        }
+    const booking = await prisma.booking.update({
+      where: { id: req.params.id },
+      data: {
+        seatsBooked,
+        status,
+      },
+    });
 
-        // check if user is the owner of the book
-        if(book.user.toString() !== req.user._id.toString()){
-            return res.status(401).json({message: "Unauthorized"})
-        }
-
-        // delete the image from cloudinary
-        if(book.user && book.image.includes("cloudinary")){
-            try{
-
-                const publicId = book.image.split("/").pop().split(".")[0];
-                await cloudinary.uploader.destroy(publicId);
-                console.log("Image deleted from Cloudinary")
-
-            }catch(e){
-                console.log("error deleting from Cloudinary", e.message)
-                res.status(500).json({message: e.message})
-            }
-        }
-
-        await book.deleteOne();
-        res.status(200).json({message: "Book deleted successfully"});
-    }catch(e){
-        console.log(e.message)
-        res.status(500).json({message: e.message})
-    }
+    res.json(booking);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// get recommended books by the logged in user
-router.get("/user", protectRoute, async(req, res) => {
-    try{
-        const books = await Book.find({user: req.user._id}).sort({createdAt: -1});
-        res.status(200).json(books);
-    }catch(e){
-        console.log("get user books error", e.message);
-        res.status(500).json({message: e.message})
-
-    }
-} )
+/// DELETE booking (soft delete logic can be added if needed)
+router.delete('/:id', async (req, res) => {
+  try {
+    await prisma.booking.delete({
+      where: { id: req.params.id },
+    });
+    res.json({ message: 'Booking deleted.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
+
+
+
+
+// Confirm booking manually (admin)
+// router.patch('/:id/confirm', protectRoute, async (req, res) => {
+//     try {
+//       const booking = await prisma.booking.update({
+//         where: { id: req.params.id },
+//         data: {
+//           status: 'CONFIRMED',
+//           confirmedAt: new Date(),
+//         },
+//       });
+//       res.json({ message: 'Booking confirmed.', booking });
+//     } catch (err) {
+//       res.status(500).json({ error: err.message });
+//     }
+//   });
+  
