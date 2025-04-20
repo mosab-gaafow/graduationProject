@@ -73,6 +73,7 @@ enum TripStatus {
 
 model Trip {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdById    String?  @db.ObjectId   // ← Make optional by using `String?`
   origin         String
   destination    String
   date           DateTime
