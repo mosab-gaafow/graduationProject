@@ -2,9 +2,8 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { ObjectId } from 'mongodb';
 import protectRoute from '../middleware/auth.middleware.js';
-
+import prisma from '../../prisma/client.js';
 const router = express.Router();
-const prisma = new PrismaClient();
 
 // Create a new trip
 router.post('/', protectRoute, async (req, res) => {
