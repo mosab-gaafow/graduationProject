@@ -34,7 +34,7 @@ model User {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   vehicles    Vehicle[]  @relation("UserVehicles")
-  trips       Trip[]     @relation("UserTrips")
+  // trips       Trip[]     @relation("UserTrips")
   bookings    Booking[]  @relation("UserBookings")
   activityLog ActivityLog[]
 }
@@ -46,16 +46,25 @@ model Vehicle {
   model       String
   capacity    Int
   color       String?
-  type        String?
+  type        VehicleType
   isDeleted   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   owner       User     @relation(name: "UserVehicles", fields: [userId], references: [id])
 }
 
+enum VehicleType{
+  Car
+  Land_Cruiser
+  BL
+  Bus
+  Truck
+  Coaster
+}
+
 model Trip {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  createdById    String   @db.ObjectId
+  // createdById    String   @db.ObjectId
   origin         String
   destination    String
   date           DateTime
@@ -64,7 +73,7 @@ model Trip {
   totalSeats     Int
   availableSeats Int
   vehicleIds     String[] // references to Vehicle IDs
-  createdBy      User     @relation(name: "UserTrips", fields: [createdById], references: [id])
+  // createdBy      User     @relation(name: "UserTrips", fields: [createdById], references: [id])
   bookings       Booking[]
   isDeleted      Boolean  @default(false)
   createdAt      DateTime @default(now())

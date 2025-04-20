@@ -30,29 +30,29 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const avatarUrl = `https://api.dicebear.com/9.x/avataaars/svg?seed=${name}`;
 
-    const newUser = await prisma.user.create({
+    const user = await prisma.user.create({
       data: {
         name,
+        phone,
         email,
         password: hashedPassword,
-        phone,
         image: avatarUrl,
         role: 'traveler', // Default role
       },
     });
 
-    const token = generateToken(newUser.id);
+    const token = generateToken(user.id);
 
     res.status(201).json({
       token,
       user: {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        phone: newUser.phone,
-        image: newUser.image,
-        role: newUser.role,
-        createdAt: newUser.createdAt,
+        _id: user.id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        image: user.image,
+        role: user.role,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -87,8 +87,8 @@ router.post('/login', async (req, res) => {
       user: {
         id: user.id,
         name: user.name,
-        email: user.email,
         phone: user.phone,
+        email: user.email,
         image: user.image,
         role: user.role,
         createdAt: user.createdAt,

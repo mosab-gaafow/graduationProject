@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv/config';
 import authRoutes from './routes/authRoutes.js';
-
+import vehicleRoutes from './routes/vehicleRoutes.js';
 import { connectDB } from './lib/db.js';
 import cors from 'cors';
 import job from './lib/cron.js';
@@ -18,6 +18,8 @@ app.use(express.json());
 app.use(cors());
 
 app.use("/api/auth", authRoutes)
+app.use('/api/vehicles', vehicleRoutes);
+
 
 app.listen(PORT, () => {
     console.log('Server is running on port 4000');
