@@ -1,5 +1,4 @@
 import express from 'express';
-import dotenv from 'dotenv/config';
 import authRoutes from './routes/authRoutes.js';
 import vehicleRoutes from './routes/vehicleRoutes.js';
 import { connectDB } from './lib/db.js';
@@ -7,6 +6,8 @@ import cors from 'cors';
 import job from './lib/cron.js';
 import tripRoutes from './routes/tripRoutes.js'
 import bookingRoutes from './routes/bookingRoutes.js'
+import dotenv from 'dotenv';
+dotenv.config(); 
 
 const app = express();
 const PORT = process.env.PORT || 4000;
