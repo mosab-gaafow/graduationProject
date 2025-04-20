@@ -1,12 +1,13 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { ObjectId } from 'mongodb';
+import protectRoute from '../middleware/auth.middleware';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // Create a new trip
-router.post('/', async (req, res) => {
+router.post('/', protectRoute, async (req, res) => {
   try {
     const {
       origin,
@@ -39,7 +40,7 @@ router.post('/', async (req, res) => {
 });
 
 // Get all trips (filter by origin, destination, or date if provided)
-router.get('/', async (req, res) => {
+router.get('/', protectRoute, async (req, res) => {
     try {
       const { origin, destination, date } = req.query;
   
@@ -64,7 +65,7 @@ router.get('/', async (req, res) => {
   });
 
 // Get trip by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', protectRoute, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -84,7 +85,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update a trip
-router.put('/:id', async (req, res) => {
+router.put('/:id', protectRoute, async (req, res) => {
   try {
     const { id } = req.params;
     const data = req.body;
@@ -102,7 +103,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Soft delete trip
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protectRoute,  async (req, res) => {
   try {
     const { id } = req.params;
 
