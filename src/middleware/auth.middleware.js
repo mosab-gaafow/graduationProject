@@ -10,10 +10,17 @@ const protectRoute = async (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
+    // console.log("Verifying token:", token);
+    // const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+console.log("🧾 Decoded JWT:", decoded);
 
+
+    // const user = await prisma.user.findUnique({
+    //   where: { id: decoded.userId },
     const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
+      where: { id: decoded.id }, 
+    
       select: {
         id: true,
         name: true,

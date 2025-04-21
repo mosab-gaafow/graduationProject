@@ -5,14 +5,20 @@ import protectRoute from '../middleware/auth.middleware.js';
 const router = express.Router();
 
 // Add new vehicle
-router.post('/', protectRoute, async (req, res) => {
+// Add new vehicle
+router.post('/registerVehicles', protectRoute, async (req, res) => {
   try {
-    const { plateNumber, model, capacity, color, type } = req.body;
+    const { plateNumber, model, capacity, type, userId } = req.body;
 
-    if (!plateNumber || !model || !capacity || !type) {
-      return res.status(400).json({ message: "All fields except color are required" });
+    if (!plateNumber || !model || !capacity || !type || !userId) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
+    if (!plateNumber || !model || !capacity || !type || !userId) {
+      Alert.alert("Missing Fields", "Please fill in all required fields.");
+      return;
+    }
+    
     const existingVehicle = await prisma.vehicle.findUnique({ where: { plateNumber } });
     if (existingVehicle) {
       return res.status(400).json({ message: "Plate number already exists" });
@@ -23,9 +29,8 @@ router.post('/', protectRoute, async (req, res) => {
         plateNumber,
         model,
         capacity: parseInt(capacity),
-        color,
         type,
-        userId: req.user.id,
+        userId,
       },
     });
 
@@ -36,8 +41,26 @@ router.post('/', protectRoute, async (req, res) => {
   }
 });
 
+// ✅ Get all vehicles of the current user (vehicle owner)
+router.get('/my', protectRoute, async (req, res) => {
+  try {
+    const vehicles = await prisma.vehicle.findMany({
+      where: {
+        userId: req.user.id,      // Only fetch vehicles of the logged-in user
+        isDeleted: false,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.status(200).json(vehicles);
+  } catch (err) {
+    console.error("Get vehicles error:", err.message);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
 // Get all vehicles (admin only)
-router.get('/', protectRoute, async (req, res) => {
+router.get('/getAllVehciles', protectRoute, async (req, res) => {
     try {
       // Check role
       if (req.user.role !== 'admin') {
@@ -70,29 +93,12 @@ router.get('/', protectRoute, async (req, res) => {
     }
   });
 
-// Get all vehicles of the current user
-router.get('/my', protectRoute, async (req, res) => {
-  try {
-    const vehicles = await prisma.vehicle.findMany({
-      where: {
-        userId: req.user.id,
-        isDeleted: false,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    res.status(200).json(vehicles);
-  } catch (err) {
-    console.error("Get vehicles error:", err.message);
-    res.status(500).json({ message: "Something went wrong" });
-  }
-});
 
 // Update a vehicle
 router.put('/:id', protectRoute, async (req, res) => {
   try {
     const { id } = req.params;
-    const { plateNumber, model, capacity, color, type } = req.body;
+    const { plateNumber, model, capacity,  type } = req.body;
 
     const vehicle = await prisma.vehicle.findUnique({ where: { id } });
 
@@ -110,7 +116,7 @@ router.put('/:id', protectRoute, async (req, res) => {
         plateNumber,
         model,
         capacity: parseInt(capacity),
-        color,
+        
         type,
       },
     });

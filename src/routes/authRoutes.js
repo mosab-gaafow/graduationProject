@@ -2,11 +2,14 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import prisma from '../../prisma/client.js';
+import protectRoute from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '15d' });
+  // return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '15d' });
+  return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '15d' });
+
 };
 
 // REGISTER
@@ -100,4 +103,31 @@ router.post('/login', async (req, res) => {
   }
 });
 
+
+// Get all users (admin only)
+router.get('/getAllUsers', protectRoute, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { isDeleted: false },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+router.get('/getAllVhecileOnwers', protectRoute, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      where: { isDeleted: false, role: 'vehicle_owner' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
 export default router;
