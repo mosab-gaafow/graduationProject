@@ -55,4 +55,21 @@ router.get('/vehcilestats', protectRoute, async (req, res) => {
 });
 
 
+// Admin: Mark a payment as verified
+router.patch('/verifyPayment/:bookingId', protectRoute, async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+
+    const updated = await prisma.booking.update({
+      where: { id: bookingId },
+      data: { paymentVerified: true },
+    });
+
+    res.json({ message: 'Payment marked as verified', booking: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to verify payment' });
+  }
+});
+
+
 export default router;

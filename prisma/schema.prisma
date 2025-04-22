@@ -106,6 +106,13 @@ model Booking {
   isDeleted   Boolean       @default(false)
   trip        Trip          @relation(fields: [tripId], references: [id])
   user        User          @relation(name: "UserBookings", fields: [userId], references: [id])
+
+  //  fields for manual payment tracking
+   amountPaid       Float?
+  paymentStatus    String?       // e.g., 'pending', 'paid', 'failed'
+  paymentMethod    String?       // e.g., 'evcplus'
+  transactionId    String?       // entered by the traveler
+  paymentVerified  Boolean       @default(false)
 }
 
 // model ActivityLog {
