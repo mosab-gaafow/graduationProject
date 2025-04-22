@@ -57,10 +57,16 @@ router.get("/ownerBookings", protectRoute, async (req, res) => {
       where: {
         tripId: { in: tripIds },
       },
-      include: {
-        user: {
-          select: { name: true, phone: true },
-        },
+      orderBy: {
+        bookingTime: "desc",
+      },
+      select: {
+        id: true,
+        seatsBooked: true,
+        amountPaid: true,
+        paymentVerified: true,
+        paymentStatus: true,
+        status: true,
         trip: {
           select: {
             origin: true,
@@ -69,11 +75,15 @@ router.get("/ownerBookings", protectRoute, async (req, res) => {
             time: true,
           },
         },
-      },
-      orderBy: {
-        bookingTime: "desc",
+        user: {
+          select: {
+            name: true,
+            phone: true,
+          },
+        },
       },
     });
+    
 
     console.log("🔑 Owner ID:", ownerId);
     console.log("🧳 Trip IDs:", tripIds);
