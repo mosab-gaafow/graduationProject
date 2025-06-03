@@ -184,14 +184,18 @@ router.get('/getAllTrips', protectRoute, async (req, res) => {
       },
     });
 
-    // 🔄 Calculate dynamic availableSeats
-    const formattedTrips = trips.map((trip) => {
+   
+
+    const formattedTrips = Array.isArray(trips)
+  ? trips.map((trip) => {
       const totalBooked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
       return {
         ...trip,
         availableSeats: trip.totalSeats - totalBooked,
       };
-    });
+    })
+  : [];
+
 
     res.json({
       trips: formattedTrips,
