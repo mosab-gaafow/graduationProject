@@ -174,7 +174,8 @@ router.get('/getAllTrips', protectRoute, async (req, res) => {
         },
         bookings: {
           where: {
-            status: { in: ['PENDING', 'CONFIRMED'] },
+            status: { in: ['PENDING', 'CONFIRMED'], isDeleted: false },
+            
           },
           select: {
             seatsBooked: true,
