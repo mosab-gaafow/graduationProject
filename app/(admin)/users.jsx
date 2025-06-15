@@ -189,6 +189,7 @@ import {
     marginBottom: 20,
     color: COLORS.textPrimary,
     textAlign: "center",
+    // textAlign: "center",
   };
   
   const modalItem = {
