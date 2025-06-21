@@ -11,13 +11,12 @@ import {
   Platform,
 } from "react-native";
 
-import {Link} from 'expo-router';
+import {Link, router} from 'expo-router';
 import React, { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import styles from "../styles/login.styles";
-import { useAuthStore } from '../../store/authStore';
 import COLORS from "../../constants/color";
-
+import { useAuthStore } from "../../store/authStore";
 
 
 export default Login = () => {
@@ -27,13 +26,33 @@ export default Login = () => {
 
   const {isLoading, login, isCheckingAuth} = useAuthStore();
 
-  const handleLogin =async () => {
-    // fetch("http://localhost:4000/api/auth/login", {
+  // const handleLogin =async () => {
+  //   // fetch("http://localhost:4000/api/auth/login", {
 
-    const result = await login(email, password);
+  //   const result = await login(email, password);
 
-     if(!result.success) Alert.alert("Error", result.error);
-  };
+  //    if(!result.success) Alert.alert("Error", result.error);
+  // };
+
+ const handleLogin = async () => {
+  const result = await login(email, password);
+
+  if (!result.success) {
+    Alert.alert("Error", result.error);
+  } else {
+    const { role } = result.user || {};
+
+    // ✅ Redirect to correct layout based on role
+   if (role === "admin") {
+  router.replace("/(admin)");
+} else if (role === "vehicle_owner") {
+  router.replace("/(owner)");
+} else {
+  router.replace("/(tabs)");
+}
+
+  }
+};
 
   if(isCheckingAuth) return null; // Show a loading screen or splash screen while checking auth
 
@@ -117,6 +136,14 @@ export default Login = () => {
               <Text style={styles.buttonText}>Login</Text>
             )}
           </TouchableOpacity>
+          <View style={{ marginTop: 16, alignItems: 'center' }}>
+  <Link href="/(auth)/forgot-password" asChild>
+    <TouchableOpacity>
+      <Text style={{ color: COLORS.primary, fontWeight: '600' }}>Forgot Password?</Text>
+    </TouchableOpacity>
+  </Link>
+</View>
+
 
             {/* footer */}
             <View style={styles.footer}>

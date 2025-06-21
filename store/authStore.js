@@ -8,47 +8,7 @@ export const useAuthStore = create((set) => ({
     isLoading: false,
     isCheckingAuth: true,
 
-    // register: async (name, phone, email, password) => {
-    //     try{
-    //         // const response = await fetch("http://192.168.100.3:4000/api/auth/register", {
-    //             const response = await fetch(`${API_URL}/auth/register`, {
-    //             method: "POST",
-    //             headers: {
-    //                 "Content-Type": "application/json",
-    //             },
-    //             body: JSON.stringify({
-    //                 name,
-    //                 phone,
-    //                 email,
-    //                 password,
-    //             }),
-    //         });
-
-    //         const data = await response.json();
-    //        if(!response.ok)  throw new Error(data.message || "Something went wrong!");
-
-    //        await AsyncStorage.setItem("user", JSON.stringify(data.user));
-    //        await AsyncStorage.setItem("token", data.token);
-
-    //     //    if (data.token) {
-    //     //         await AsyncStorage.setItem("token", data.token);
-    //     //     }
-    //     //     if (data.user) {
-    //     //         await AsyncStorage.setItem("user", JSON.stringify(data.user));
-    //     //     }
-            
-
-    //        set({user: data.user, token: data.token, isLoading: false});
-
-    //        return {success: true};
-
-
-    //     }catch(e){
-    //         set({isLoading: false});
-    //         return {success: false, error: e.message || "Something went wrong!"};
-    //     }
-    // },
-
+  
 
     
     register: async (name, phone, email, password) => {
@@ -123,34 +83,66 @@ export const useAuthStore = create((set) => ({
         }
     },
 
-    login: async(email, password) => {
-        try{
+    // login: async(email, password) => {
+    //     try{
 
 
-            const response = await fetch(`${API_URL}/auth/login`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email,
-                    password,
-                }),
-            });
+    //         const response = await fetch(`${API_URL}/auth/login`, {
+    //             method: "POST",
+    //             headers: {
+    //                 "Content-Type": "application/json",
+    //             },
+    //             body: JSON.stringify({
+    //                 email,
+    //                 password,
+    //             }),
+    //         });
 
-            const data = await response.json();
-           if(!response.ok)  throw new Error(data.message || "Something went wrong!");
+    //         const data = await response.json();
+    //        if(!response.ok)  throw new Error(data.message || "Something went wrong!");
 
-           await AsyncStorage.setItem("user", JSON.stringify(data.user));
-           await AsyncStorage.setItem("token", data.token);
+    //        await AsyncStorage.setItem("user", JSON.stringify(data.user));
+    //        await AsyncStorage.setItem("token", data.token);
 
-           set({user: data.user, token: data.token, isLoading: false});
+    //        set({user: data.user, token: data.token, isLoading: false});
 
-           return {success: true};
+    //        return {success: true};
 
-        }catch(e){
-            set({isLoading: false});
-            return {success: false, error: e.message || "Something went wrong!"};
-        }
-    }
+    //     }catch(e){
+    //         set({isLoading: false});
+    //         return {success: false, error: e.message || "Something went wrong!"};
+    //     }
+    // }
+
+    login: async (email, password) => {
+  try {
+    set({ isLoading: true }); // ✅ START LOADING
+
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Something went wrong!");
+
+    await AsyncStorage.setItem("user", JSON.stringify(data.user));
+    await AsyncStorage.setItem("token", data.token);
+
+    set({ user: data.user, token: data.token, isLoading: false });
+
+    return { success: true, user: data.user };
+
+  } catch (e) {
+    set({ isLoading: false });
+    return { success: false, error: e.message || "Something went wrong!" };
+  }
+}
+
 }))
