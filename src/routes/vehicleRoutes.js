@@ -86,20 +86,21 @@ router.get('/getAllVehicles', protectRoute, async (req, res) => {
   }
 });
 
-// ✅ Update a vehicle (by owner only)
+// ✅ Update a vehicle (admin only)
 router.put('/:id', protectRoute, async (req, res) => {
   try {
     const { id } = req.params;
-    const { plateNumber, model, capacity, type } = req.body;
+    const { plateNumber, model, capacity, type, userId } = req.body;
+
+    // Ensure only admin can update vehicles
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admins can update vehicles.' });
+    }
 
     const vehicle = await prisma.vehicle.findUnique({ where: { id } });
 
     if (!vehicle || vehicle.isDeleted) {
-      return res.status(404).json({ message: "Vehicle not found." });
-    }
-
-    if (vehicle.userId !== req.user.id) {
-      return res.status(403).json({ message: "Not authorized to update this vehicle." });
+      return res.status(404).json({ message: 'Vehicle not found.' });
     }
 
     const updatedVehicle = await prisma.vehicle.update({
@@ -109,15 +110,17 @@ router.put('/:id', protectRoute, async (req, res) => {
         model,
         capacity: parseInt(capacity),
         type,
+        userId, // allow admin to change the vehicle owner if needed
       },
     });
 
     res.status(200).json(updatedVehicle);
   } catch (err) {
-    console.error("Update vehicle error:", err.message);
-    res.status(500).json({ message: "Something went wrong." });
+    console.error('Update vehicle error:', err.message);
+    res.status(500).json({ message: 'Something went wrong.' });
   }
 });
+
 
 // ✅ Only admins can delete a vehicle
 router.delete('/:id', protectRoute, async (req, res) => {
