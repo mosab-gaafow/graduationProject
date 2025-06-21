@@ -119,24 +119,20 @@ router.put('/:id', protectRoute, async (req, res) => {
   }
 });
 
-// ✅ Soft delete a vehicle (by owner only)
-// ✅ Soft delete a vehicle (by owner or admin)
+// ✅ Only admins can delete a vehicle
 router.delete('/:id', protectRoute, async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Ensure only admin role can proceed
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admins can delete vehicles.' });
+    }
+
     const vehicle = await prisma.vehicle.findUnique({ where: { id } });
 
     if (!vehicle || vehicle.isDeleted) {
-      return res.status(404).json({ message: "Vehicle not found." });
-    }
-
-    // ✅ Allow deletion if user is owner OR admin
-    const isAdmin = req.user.role === 'admin';
-    const isOwner = vehicle.userId === req.user.id;
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ message: "Not authorized to delete this vehicle." });
+      return res.status(404).json({ message: 'Vehicle not found.' });
     }
 
     await prisma.vehicle.update({
@@ -144,10 +140,10 @@ router.delete('/:id', protectRoute, async (req, res) => {
       data: { isDeleted: true },
     });
 
-    res.status(200).json({ message: "Vehicle deleted successfully." });
+    res.status(200).json({ message: 'Vehicle deleted successfully.' });
   } catch (err) {
-    console.error("Delete vehicle error:", err.message);
-    res.status(500).json({ message: "Something went wrong." });
+    console.error('Delete vehicle error:', err.message);
+    res.status(500).json({ message: 'Something went wrong.' });
   }
 });
 
