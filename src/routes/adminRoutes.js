@@ -121,7 +121,9 @@ router.put('/update-profile', protectRoute, async (req, res) => {
     const { name, email, phone, password } = req.body;
     const userId = req.user.id;
 
-    // Enhanced validation
+    console.log("Update request received:", { userId, body: req.body }); // Debug log
+
+    // Enhanced validation - allow partial updates
     if (!name && !email && !phone && !password) {
       return res.status(400).json({ 
         success: false,
@@ -137,6 +139,7 @@ router.put('/update-profile', protectRoute, async (req, res) => {
       });
     }
 
+    // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
     });
@@ -161,42 +164,58 @@ router.put('/update-profile', protectRoute, async (req, res) => {
       }
     }
 
+    // Prepare update data - handle null/undefined properly
     const updateData = {
-      name: name || existingUser.name,
-      email: email || existingUser.email,
+      name: name !== undefined ? name : existingUser.name,
+      email: email !== undefined ? email : existingUser.email,
       phone: phone !== undefined ? phone : existingUser.phone,
     };
 
+    // Only hash password if provided
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true
-      }
+    // Use transaction for safety
+    const updatedUser = await prisma.$transaction(async (prisma) => {
+      return await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
     });
+
+    console.log("Successfully updated user:", updatedUser); // Debug log
 
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      user: updatedUser
+      user: updatedUser // Make sure to return the updated user data
     });
 
   } catch (error) {
-    console.error('Profile update error:', error);
+    console.error('Profile update error:', {
+      message: error.message,
+      stack: error.stack,
+      code: error.code
+    });
+    
     res.status(500).json({ 
       success: false,
       error: 'Failed to update profile',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      // Only show details in development
+      details: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        code: error.code
+      } : undefined
     });
   }
 });
