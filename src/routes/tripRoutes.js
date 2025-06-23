@@ -43,104 +43,6 @@ router.post('/registerTrip', protectRoute, async (req, res) => {
   }
 });
 
-// Get all trips (filter by origin, destination, or date if provided)
-// router.get('/getAllTrips', protectRoute, async (req, res) => {
-//   try {
-//     const { origin, destination, date, page = 1, limit = 10} = req.query;
-
-//     const filters = {
-//       isDeleted: false,
-//     };
-    
-//     if (origin) filters.origin = { contains: origin, mode: 'insensitive' };
-//     if (destination) filters.destination = { contains: destination, mode: 'insensitive' };
-//     if (date) filters.date = new Date(date);
-//     if (req.query.status) filters.status = req.query.status; // add this!
-    
-
-//     const skip = (parseInt(page) - 1) * parseInt(limit);
-//     const take = parseInt(limit);
-
-//     // Count total filtered trips
-//     const total = await prisma.trip.count({
-//       where: filters,
-//     });
-
-//     const trips = await prisma.trip.findMany({
-//       where: filters,
-//       skip,
-//       take,
-//       orderBy: { date: 'asc' },
-//       select: {
-//         id: true,
-//         origin: true,
-//         destination: true,
-//         date: true,
-//         time: true,
-//         price: true,
-//         totalSeats: true,
-//         availableSeats: true,
-//         vehicleIds: true, // ✅ Make sure this is included
-//         status: true
-//       }
-//     });
-
-//     res.json({
-//       trips,
-//       total,
-//       totalPages: Math.ceil(total / take),
-//       currentPage: parseInt(page),
-//     });
-//   } catch (error) {
-//     console.error('🔥 Detailed trips fetch error:', JSON.stringify(error, null, 2));
-//     res.status(500).json({ error: 'Failed to get trips', details: error.message });
-//   }
-// });
-
-// router.get('/getAllTrips', protectRoute, async (req, res) => {
-//   try {
-//     const { origin, destination, date, page = 1, limit = 10, status } = req.query;
-
-//     const filters = {
-//       isDeleted: false,
-//     };
-
-//     if (origin) filters.origin = { contains: origin, mode: 'insensitive' };
-//     if (destination) filters.destination = { contains: destination, mode: 'insensitive' };
-//     if (date) filters.date = new Date(date);
-//     if (status) filters.status = status;
-
-//     const skip = (parseInt(page) - 1) * parseInt(limit);
-//     const take = parseInt(limit);
-
-//     const total = await prisma.trip.count({ where: filters });
-
-//     const trips = await prisma.trip.findMany({
-//       where: filters,
-//       skip,
-//       take,
-//       orderBy: { date: 'asc' },
-//       include: {
-//         user: {
-//           select: {
-//             name: true,
-//             phone: true, // 👈 includes trip owner's EVC+ number
-//           },
-//         },
-//       },
-//     });
-
-//     res.json({
-//       trips,
-//       total,
-//       totalPages: Math.ceil(total / take),
-//       currentPage: parseInt(page),
-//     });
-//   } catch (error) {
-//     console.error('🔥 Detailed trips fetch error:', JSON.stringify(error, null, 2));
-//     res.status(500).json({ error: 'Failed to get trips', details: error.message });
-//   }
-// });
 
 router.get('/getAllTrips', protectRoute, async (req, res) => {
   try {
@@ -148,6 +50,7 @@ router.get('/getAllTrips', protectRoute, async (req, res) => {
 
     const filters = {
       isDeleted: false,
+      userId: req.user.id,
     };
 
     if (origin) filters.origin = { contains: origin, mode: 'insensitive' };
@@ -217,13 +120,22 @@ router.get('/:id', protectRoute, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const trip = await prisma.trip.findUnique({
-      where: { id },
-    });
+    // const trip = await prisma.trip.findUnique({
+    //   where: { id },
+    // });
 
-    if (!trip || trip.isDeleted) {
-      return res.status(404).json({ error: 'Trip not found' });
-    }
+    // if (!trip || trip.isDeleted) {
+    //   return res.status(404).json({ error: 'Trip not found' });
+    // }
+
+    const trip = await prisma.trip.findUnique({
+  where: { id },
+});
+
+if (!trip || trip.isDeleted || trip.userId !== req.user.id) {
+  return res.status(404).json({ error: 'Trip not found or unauthorized' });
+}
+
 
     res.json(trip);
   } catch (error) {
@@ -238,10 +150,17 @@ router.put('/:id', protectRoute, async (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
+    // const existing = await prisma.trip.findUnique({ where: { id } });
+    // if (!existing || existing.isDeleted) {
+    //   return res.status(404).json({ error: 'Trip not found or already deleted' });
+    // }
+
     const existing = await prisma.trip.findUnique({ where: { id } });
-    if (!existing || existing.isDeleted) {
-      return res.status(404).json({ error: 'Trip not found or already deleted' });
-    }
+
+if (!existing || existing.isDeleted || existing.userId !== req.user.id) {
+  return res.status(404).json({ error: 'Trip not found or unauthorized' });
+}
+
 
     const trip = await prisma.trip.update({
       where: { id },
@@ -260,10 +179,22 @@ router.delete('/:id', protectRoute,  async (req, res) => {
   try {
     const { id } = req.params;
 
-    const trip = await prisma.trip.update({
-      where: { id },
-      data: { isDeleted: true },
-    });
+    // const trip = await prisma.trip.update({
+    //   where: { id },
+    //   data: { isDeleted: true },
+    // });
+
+    const existing = await prisma.trip.findUnique({ where: { id } });
+
+if (!existing || existing.isDeleted || existing.userId !== req.user.id) {
+  return res.status(404).json({ error: 'Trip not found or unauthorized' });
+}
+
+const trip = await prisma.trip.update({
+  where: { id },
+  data: { isDeleted: true },
+});
+
 
     res.json({ message: 'Trip deleted (soft)', trip });
   } catch (error) {
@@ -271,37 +202,6 @@ router.delete('/:id', protectRoute,  async (req, res) => {
     res.status(500).json({ error: 'Failed to delete trip' });
   }
 });
-
-// router.get('/ownerEarnings', protectRoute, async (req, res) => {
-//   try {
-//     const ownerId = req.user.id;
-
-//     // Get all trips posted by this owner
-//     const trips = await prisma.trip.findMany({
-//       where: { userId: ownerId, isDeleted: false },
-//       select: { id: true },
-//     });
-
-//     const tripIds = trips.map((t) => t.id);
-
-//     const bookings = await prisma.booking.findMany({
-//       where: {
-//         tripId: { in: tripIds },
-//         paymentStatus: 'paid',
-//       },
-//     });
-
-//     const totalEarnings = bookings.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
-
-//     res.json({
-//       totalEarnings,
-//       totalBookings: bookings.length,
-//       bookings,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: 'Failed to get owner earnings' });
-//   }
-// });
 
 
 router.get("/ownerEarnings", protectRoute, async (req, res) => {
@@ -346,50 +246,3 @@ router.get("/ownerEarnings", protectRoute, async (req, res) => {
   }
 });
 
-
-
-// router.post("/repairSeats", protectRoute, async (req, res) => {
-//   try {
-//     // Optional: check if user is admin
-//     if (req.user.role !== 'admin') {
-//       return res.status(403).json({ error: "Not authorized" });
-//     }
-
-//     const trips = await prisma.trip.findMany({
-//       where: { isDeleted: false },
-//       select: { id: true, totalSeats: true },
-//     });
-
-//     for (const trip of trips) {
-//       const confirmedBookings = await prisma.booking.findMany({
-//         where: {
-//           tripId: trip.id,
-//           status: { in: ['PENDING', 'CONFIRMED'] },
-//         },
-//       });
-
-//       const bookedSeats = confirmedBookings.reduce(
-//         (sum, b) => sum + b.seatsBooked,
-//         0
-//       );
-
-//       const newAvailable = trip.totalSeats - bookedSeats;
-
-//       await prisma.trip.update({
-//         where: { id: trip.id },
-//         data: { availableSeats: newAvailable },
-//       });
-
-//       console.log(`✅ Fixed Trip ${trip.id}: availableSeats = ${newAvailable}`);
-//     }
-
-//     res.json({ message: "Seats repaired for all trips." });
-//   } catch (err) {
-//     console.error("Repair error:", err.message);
-//     res.status(500).json({ error: "Failed to repair seats" });
-//   }
-// });
-
-
-
-export default router;
