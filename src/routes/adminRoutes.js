@@ -121,34 +121,56 @@ router.put('/update-profile', protectRoute, async (req, res) => {
     const { name, email, phone, password } = req.body;
     const userId = req.user.id;
 
-    // Basic validation
+    // Enhanced validation
     if (!name && !email && !phone && !password) {
-      return res.status(400).json({ error: 'At least one field must be provided for update' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'At least one field must be provided for update' 
+      });
     }
 
-    // Check if user exists
+    // Validate password length if provided
+    if (password && password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Password must be at least 6 characters'
+      });
+    }
+
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
     });
 
     if (!existingUser) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
     }
 
-    // Prepare update data
+    // Email change validation
+    if (email && email !== existingUser.email) {
+      const emailExists = await prisma.user.findUnique({
+        where: { email },
+      });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          error: 'Email already in use'
+        });
+      }
+    }
+
     const updateData = {
       name: name || existingUser.name,
       email: email || existingUser.email,
       phone: phone !== undefined ? phone : existingUser.phone,
     };
 
-    // Only update password if provided
     if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      updateData.password = hashedPassword;
+      updateData.password = await bcrypt.hash(password, 10);
     }
 
-    // Update user
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: updateData,
@@ -173,10 +195,10 @@ router.put('/update-profile', protectRoute, async (req, res) => {
     console.error('Profile update error:', error);
     res.status(500).json({ 
       success: false,
-      error: 'Failed to update profile'
+      error: 'Failed to update profile',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
-
 
 export default router;
