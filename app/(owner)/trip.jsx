@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  Button,
 } from "react-native";
 import React, { useEffect, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -44,12 +45,10 @@ export default function Trip() {
   const [vehicleList, setVehicleList] = useState([]); // store full objects too
 
   const [modalVisible, setModalVisible] = useState(false);
-    const [trips, setTrips] = useState([]);
+  const [trips, setTrips] = useState([]);
 
-    const [isEditing, setIsEditing] = useState(false);
-const [editTripId, setEditTripId] = useState(null);
-
-
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTripId, setEditTripId] = useState(null);
 
   const tripStatus = [
     { label: "Pending", value: "PENDING" },
@@ -63,7 +62,7 @@ const [editTripId, setEditTripId] = useState(null);
       const res = await fetch(`${API_URL}/trips/getAllTrips`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-  
+
       const data = await res.json();
       if (res.ok && data.trips) {
         setTrips(data.trips);
@@ -77,7 +76,6 @@ const [editTripId, setEditTripId] = useState(null);
     fetchVehciles();
     fetchTrips(); // fetch trips initially
   }, []);
-  
 
   const fetchVehciles = async () => {
     try {
@@ -98,59 +96,174 @@ const [editTripId, setEditTripId] = useState(null);
     }
   };
 
+  // const handleSubmit = async () => {
+  //   if (
+  //     !origin ||
+  //     !destination ||
+  //     !date ||
+  //     !time ||
+  //     !price ||
+  //     !totalSeats ||
+  //     !userId
+  //   ) {
+  //     Alert.alert("Error", "Please fill in all fields.");
+  //     return;
+  //   }
+
+  //   try {
+  //     setLoading(true);
+
+  //     const payload = {
+  //       origin,
+  //       destination,
+  //       date,
+  //       time,
+  //       price,
+  //       totalSeats,
+  //       status: type || "PENDING",
+  //       vehicleIds: [userId],
+  //     };
+
+  //     const endpoint = isEditing
+  //       ? `${API_URL}/trips/${editTripId}`
+  //       : `${API_URL}/trips/registerTrip`;
+
+  //     const method = isEditing ? "PUT" : "POST";
+
+  //     const res = await fetch(endpoint, {
+  //       method,
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify(payload),
+  //     });
+
+  //     const data = await res.json();
+  //     if (!res.ok) {
+  //       console.error("Error response from server:", data); 
+  //       throw new Error(data.message || "Something went wrong");
+        
+  //     }
+
+  //     Alert.alert(
+  //       "Success",
+  //       `Trip ${isEditing ? "updated" : "created"} successfully`
+  //     );
+  //     resetForm();
+  //     setModalVisible(false);
+
+  //     fetchTrips();
+  //   } catch (err) {
+  //     Alert.alert("Error", err.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
 
   const handleSubmit = async () => {
-    if (!origin || !destination || !date || !time || !price || !totalSeats || !userId) {
-      Alert.alert("Error", "Please fill in all fields.");
-      return;
+  if (
+    !origin ||
+    !destination ||
+    !date ||
+    !time ||
+    !price ||
+    !totalSeats ||
+    !userId
+  ) {
+    Alert.alert("Error", "Please fill in all fields.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    // Ensure the date is in a valid ISO format (ISO 8601 DateTime)
+    let formattedDate = new Date(date);
+    if (isNaN(formattedDate.getTime())) {
+      throw new Error("Invalid date format");
     }
-  
-    try {
-      setLoading(true);
-  
-      const payload = {
-        origin,
-        destination,
-        date,
-        time,
-        price,
-        totalSeats,
-        status: type || "PENDING",
-        vehicleIds: [userId],
-      };
-  
-      const endpoint = isEditing
-        ? `${API_URL}/trips/${editTripId}`
-        : `${API_URL}/trips/registerTrip`;
-  
-      const method = isEditing ? "PUT" : "POST";
-  
-      const res = await fetch(endpoint, {
-        method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-  
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Something went wrong");
-  
-      Alert.alert("Success", `Trip ${isEditing ? "updated" : "created"} successfully`);
-      setModalVisible(false);
-      setIsEditing(false);
-      setEditTripId(null);
-      fetchTrips();
-    } catch (err) {
-      Alert.alert("Error", err.message);
-    } finally {
-      setLoading(false);
+
+    // Convert date to ISO string with time
+    formattedDate = formattedDate.toISOString();
+
+    // Ensure price is a float
+    let formattedPrice = parseFloat(price);
+    if (isNaN(formattedPrice)) {
+      throw new Error("Invalid price format");
     }
+
+    // Ensure totalSeats is an integer
+    let formattedTotalSeats = parseInt(totalSeats, 10);
+    if (isNaN(formattedTotalSeats)) {
+      throw new Error("Invalid totalSeats format");
+    }
+
+    const payload = {
+      origin,
+      destination,
+      date: formattedDate, // Correct format for Prisma
+      time,
+      price: formattedPrice, // Correcting price to float
+      totalSeats: formattedTotalSeats, // Correcting totalSeats to integer
+      status: type || "PENDING",
+      vehicleIds: [userId],
+    };
+
+    const endpoint = isEditing
+      ? `${API_URL}/trips/${editTripId}`
+      : `${API_URL}/trips/registerTrip`;
+
+    const method = isEditing ? "PUT" : "POST";
+
+    const res = await fetch(endpoint, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("Error response from server:", data);  // Log error response
+      throw new Error(data.message || "Something went wrong");
+    }
+
+    Alert.alert(
+      "Success",
+      `Trip ${isEditing ? "updated" : "created"} successfully`
+    );
+    resetForm();
+    setModalVisible(false);
+
+    fetchTrips();
+  } catch (err) {
+    console.error("Error in handleSubmit:", err);  // Log the error
+    Alert.alert("Error", err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const resetForm = () => {
+    setOrigin("");
+    setDestination("");
+    setDate("");
+    setTime("");
+    setPrice("");
+    setTotalSeats("");
+    setUserId(null);
+    setType(null);
+    setIsEditing(false);
+    setEditTripId(null);
   };
 
   const handleDeleteTrip = async (id) => {
+    console.log("Deleting trip with ID:", id); // Add this
     Alert.alert("Confirm", "Are you sure you want to delete this trip?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -162,10 +275,10 @@ const [editTripId, setEditTripId] = useState(null);
               method: "DELETE",
               headers: { Authorization: `Bearer ${token}` },
             });
-  
+
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || "Failed to delete");
-  
+
             fetchTrips();
           } catch (err) {
             Alert.alert("Error", err.message);
@@ -184,8 +297,6 @@ const [editTripId, setEditTripId] = useState(null);
       }, 100);
     }
   }, [modalVisible]);
-  
-  
 
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
@@ -197,12 +308,12 @@ const [editTripId, setEditTripId] = useState(null);
           padding: 12,
           margin: 20,
           borderRadius: 8,
-          alignItems: "center"
+          alignItems: "center",
         }}
       >
         <Text style={{ color: "#fff", fontWeight: "bold" }}>+ Create Trip</Text>
       </TouchableOpacity>
-  
+
       {/* Create Trip Modal */}
       <Modal
         visible={modalVisible}
@@ -215,7 +326,7 @@ const [editTripId, setEditTripId] = useState(null);
             flex: 1,
             backgroundColor: "rgba(0,0,0,0.1)",
             justifyContent: "center",
-            padding: 16
+            padding: 16,
           }}
         >
           <ScrollView
@@ -223,18 +334,22 @@ const [editTripId, setEditTripId] = useState(null);
               backgroundColor: "#fff",
               padding: 18,
               borderRadius: 14,
-              minHeight: 400
+              minHeight: 400,
             }}
             keyboardShouldPersistTaps="handled"
           >
             <View style={styles.card}>
               <View style={styles.header}>
-                <Text style={styles.title}>Add New Trip</Text>
+                {/* <Text style={styles.title}>Add New Trip</Text> */}
+                <Text style={styles.title}>
+                  {isEditing ? "Edit Trip" : "Add New Trip"}
+                </Text>
+
                 <Text style={styles.subtitle}>
                   Enter details for your upcoming journey
                 </Text>
               </View>
-  
+
               <View style={styles.form}>
                 {/* VEHICLE DROPDOWN */}
                 <View style={styles.formGroup}>
@@ -246,7 +361,9 @@ const [editTripId, setEditTripId] = useState(null);
                     setOpen={setUserOpen}
                     setValue={setUserId}
                     onChangeValue={(val) => {
-                      const selectedVehicle = vehicleList.find((v) => v.id === val);
+                      const selectedVehicle = vehicleList.find(
+                        (v) => v.id === val
+                      );
                       if (selectedVehicle) {
                         setTotalSeats(selectedVehicle.capacity.toString());
                       }
@@ -262,12 +379,17 @@ const [editTripId, setEditTripId] = useState(null);
                     listMode="SCROLLVIEW"
                   />
                 </View>
-  
+
                 {/* ORIGIN */}
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Origin *</Text>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="navigate-outline" size={20} color={COLORS.primary} style={styles.inputIcon} />
+                    <Ionicons
+                      name="navigate-outline"
+                      size={20}
+                      color={COLORS.primary}
+                      style={styles.inputIcon}
+                    />
                     <TextInput
                       style={styles.input}
                       placeholder="Mogadishu"
@@ -277,12 +399,17 @@ const [editTripId, setEditTripId] = useState(null);
                     />
                   </View>
                 </View>
-  
+
                 {/* DESTINATION */}
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Destination *</Text>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="flag-outline" size={20} color={COLORS.primary} style={styles.inputIcon} />
+                    <Ionicons
+                      name="flag-outline"
+                      size={20}
+                      color={COLORS.primary}
+                      style={styles.inputIcon}
+                    />
                     <TextInput
                       style={styles.input}
                       placeholder="Baidoa"
@@ -292,13 +419,23 @@ const [editTripId, setEditTripId] = useState(null);
                     />
                   </View>
                 </View>
-  
+
                 {/* DATE */}
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Date *</Text>
-                  <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.inputContainer}>
-                    <Ionicons name="calendar-outline" size={20} color={COLORS.primary} style={styles.inputIcon} />
-                    <Text style={styles.input}>{date || "Tap to select date"}</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(true)}
+                    style={styles.inputContainer}
+                  >
+                    <Ionicons
+                      name="calendar-outline"
+                      size={20}
+                      color={COLORS.primary}
+                      style={styles.inputIcon}
+                    />
+                    <Text style={styles.input}>
+                      {date || "Tap to select date"}
+                    </Text>
                   </TouchableOpacity>
                   {showDatePicker && (
                     <DateTimePicker
@@ -314,13 +451,23 @@ const [editTripId, setEditTripId] = useState(null);
                     />
                   )}
                 </View>
-  
+
                 {/* TIME */}
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Time *</Text>
-                  <TouchableOpacity onPress={() => setShowTimePicker(true)} style={styles.inputContainer}>
-                    <Ionicons name="time-outline" size={20} color={COLORS.primary} style={styles.inputIcon} />
-                    <Text style={styles.input}>{time || "Tap to select time"}</Text>
+                  <TouchableOpacity
+                    onPress={() => setShowTimePicker(true)}
+                    style={styles.inputContainer}
+                  >
+                    <Ionicons
+                      name="time-outline"
+                      size={20}
+                      color={COLORS.primary}
+                      style={styles.inputIcon}
+                    />
+                    <Text style={styles.input}>
+                      {time || "Tap to select time"}
+                    </Text>
                   </TouchableOpacity>
                   {showTimePicker && (
                     <DateTimePicker
@@ -330,20 +477,31 @@ const [editTripId, setEditTripId] = useState(null);
                       onChange={(event, selectedTime) => {
                         setShowTimePicker(false);
                         if (selectedTime) {
-                          const hours = selectedTime.getHours().toString().padStart(2, "0");
-                          const minutes = selectedTime.getMinutes().toString().padStart(2, "0");
+                          const hours = selectedTime
+                            .getHours()
+                            .toString()
+                            .padStart(2, "0");
+                          const minutes = selectedTime
+                            .getMinutes()
+                            .toString()
+                            .padStart(2, "0");
                           setTime(`${hours}:${minutes}`);
                         }
                       }}
                     />
                   )}
                 </View>
-  
+
                 {/* PRICE */}
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Price (USD) *</Text>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="cash-outline" size={20} color={COLORS.primary} style={styles.inputIcon} />
+                    <Ionicons
+                      name="cash-outline"
+                      size={20}
+                      color={COLORS.primary}
+                      style={styles.inputIcon}
+                    />
                     <TextInput
                       style={styles.input}
                       placeholder="10"
@@ -354,12 +512,17 @@ const [editTripId, setEditTripId] = useState(null);
                     />
                   </View>
                 </View>
-  
+
                 {/* TOTAL SEATS */}
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Total Seats *</Text>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="people-outline" size={20} color={COLORS.primary} style={styles.inputIcon} />
+                    <Ionicons
+                      name="people-outline"
+                      size={20}
+                      color={COLORS.primary}
+                      style={styles.inputIcon}
+                    />
                     <TextInput
                       style={styles.input}
                       placeholder="15"
@@ -371,7 +534,7 @@ const [editTripId, setEditTripId] = useState(null);
                     />
                   </View>
                 </View>
-  
+
                 {/* STATUS DROPDOWN */}
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Trip Status *</Text>
@@ -392,37 +555,51 @@ const [editTripId, setEditTripId] = useState(null);
                     listMode="SCROLLVIEW"
                   />
                 </View>
-  
+
                 {/* SUBMIT BUTTON */}
                 <TouchableOpacity
                   style={styles.button}
-                  onPress={async () => {
-                    await handleSubmit();
-                    setModalVisible(false);
-                    fetchTrips();
-                  }}
+                  // onPress= {}
+                  onPress={handleSubmit}
                   disabled={loading}
                 >
                   {loading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
                     <>
-                      <Ionicons name="cloud-upload-outline" size={20} color="#fff" style={styles.buttonIcon} />
-                      <Text style={styles.buttonText}>Create Trip</Text>
+                      <Ionicons
+                        name="cloud-upload-outline"
+                        size={20}
+                        color="#fff"
+                        style={styles.buttonIcon}
+                      />
+                      {/* <Text style={styles.buttonText}>Create Trip</Text> */}
+                      <Text style={styles.buttonText}>
+                        {isEditing ? "Update Trip" : "Create Trip"}
+                      </Text>
                     </>
                   )}
                 </TouchableOpacity>
-  
+
                 {/* CANCEL BUTTON */}
-                <TouchableOpacity onPress={() => setModalVisible(false)} style={{ marginTop: 16, alignItems: "center" }}>
-                  <Text style={{ color: COLORS.primary, fontWeight: "bold" }}>Cancel</Text>
+                {/* <TouchableOpacity onPress={() => setModalVisible(false)} style={{ marginTop: 16, alignItems: "center" }}> */}
+                <TouchableOpacity
+                  onPress={() => {
+                    resetForm();
+                    setModalVisible(false);
+                  }}
+                  style={{ marginTop: 16, alignItems: "center" }}
+                >
+                  <Text style={{ color: COLORS.primary, fontWeight: "bold" }}>
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
           </ScrollView>
         </View>
       </Modal>
-  
+
       {/* TRIP LIST */}
       <View style={{ padding: 20 }}>
         <Text
@@ -435,64 +612,91 @@ const [editTripId, setEditTripId] = useState(null);
         >
           🚐 Your Trips
         </Text>
-  
-        {trips.map((trip) => (
-  <View
-    key={trip.id}
-    style={{
-      backgroundColor: COLORS.cardBackground,
-      borderRadius: 10,
-      padding: 12,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: COLORS.border,
-      position: "relative",
-    }}
-  >
-    {/* Top Right Icons */}
-    <View style={{ position: "absolute", top: 10, right: 10, flexDirection: "row", gap: 16 }}>
-      <TouchableOpacity
-        onPress={() => {
-          setIsEditing(true);
-          setEditTripId(trip.id);
-          setModalVisible(true);
 
-          // Prefill form
-          setOrigin(trip.origin);
-          setDestination(trip.destination);
-          setDate(trip.date?.split("T")[0]);
-          setTime(trip.time);
-          setPrice(trip.price.toString());
-          setTotalSeats(trip.totalSeats.toString());
-          setType(trip.status);
-        //   setUserId(trip.vehicleIds[0]); // assuming only one for now
+        {trips.map((trip) => (
+          <View
+            key={trip.id}
+            style={{
+              backgroundColor: COLORS.cardBackground,
+              borderRadius: 10,
+              padding: 12,
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: COLORS.border,
+              position: "relative",
+            }}
+          >
+            {/* Top Right Icons */}
+            <View
+  style={{
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 8,
+    gap: 10,
+  }}
+>
+  <View style={{ flex: 1 }}>
+    <Button
+      title="Edit"
+      color={COLORS.primary}
+      onPress={() => {
+        setIsEditing(true);
+        setEditTripId(trip.id);
+        setOrigin(trip.origin);
+        setDestination(trip.destination);
+        setDate(trip.date?.split("T")[0] || "");
+        setTime(trip.time || "");
+        setPrice(trip.price?.toString() || "");
+        setTotalSeats(trip.totalSeats?.toString() || "");
+        setType(trip.status || "PENDING");
         setUserId(trip.vehicleIds?.[0] || null);
 
-        }}
-      >
-        <Ionicons name="create-outline" size={24} color={COLORS.primary} />
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => handleDeleteTrip(trip.id)}
-      >
-        <Ionicons name="trash-outline" size={24} color="red" />
-      </TouchableOpacity>
-    </View>
-
-    <Text style={{ fontWeight: "600", color: COLORS.textPrimary }}>
-      {trip.origin} → {trip.destination}
-    </Text>
-    <Text style={{ color: COLORS.textSecondary }}>
-      Date: {new Date(trip.date).toLocaleDateString()} • Time: {trip.time}
-    </Text>
-    <Text style={{ color: COLORS.textSecondary }}>
-      Price: ${trip.price} • Seats: {trip.availableSeats}/{trip.totalSeats}
-    </Text>
-    <Text style={{ color: COLORS.primary }}>Status: {trip.status}</Text>
+        setTimeout(() => {
+          setModalVisible(true);
+          setUserOpen(true);
+          setTimeout(() => setUserOpen(false), 100);
+        }, 50);
+      }}
+    />
   </View>
-))}
 
+  <View style={{ flex: 1 }}>
+    <Button
+      title="Delete"
+      color="red"
+      onPress={() => {
+        Alert.alert(
+          "Confirm Delete",
+          "Are you sure you want to delete this trip?",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Delete",
+              style: "destructive",
+              onPress: () => handleDeleteTrip(trip.id),
+            },
+          ]
+        );
+      }}
+    />
+  </View>
+</View>
+
+
+            <Text style={{ fontWeight: "600", color: COLORS.textPrimary }}>
+              {trip.origin} → {trip.destination}
+            </Text>
+            <Text style={{ color: COLORS.textSecondary }}>
+              Date: {new Date(trip.date).toLocaleDateString()} • Time:{" "}
+              {trip.time}
+            </Text>
+            <Text style={{ color: COLORS.textSecondary }}>
+              Price: ${trip.price} • Seats: {trip.availableSeats}/
+              {trip.totalSeats}
+            </Text>
+            <Text style={{ color: COLORS.primary }}>Status: {trip.status}</Text>
+          </View>
+        ))}
       </View>
     </View>
   );

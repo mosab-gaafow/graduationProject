@@ -46,7 +46,7 @@ export default function AdminTabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="vehicles"
         options={{
           title: "Vehicles",
@@ -54,7 +54,7 @@ export default function AdminTabLayout() {
             <Ionicons name="car-outline" size={size} color={color} />
           ),
         }}
-      />
+      /> */}
       
       <Tabs.Screen
         name="profile"

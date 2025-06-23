@@ -34,7 +34,8 @@ export default function BookingForm() {
   useEffect(() => {
     const fetchTrips = async () => {
       try {
-        const res = await fetch(`${API_URL}/trips/getAllTrips`, {
+        
+        const res = await fetch(`${API_URL}/trips/public`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();

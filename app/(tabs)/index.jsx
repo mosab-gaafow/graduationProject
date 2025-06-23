@@ -30,7 +30,9 @@ export default function Home() {
       if (refresh) setRefreshing(true);
       else if (pageNum === 1) setLoading(true);
 
-      const url = `${API_URL}/trips/getAllTrips?page=${pageNum}&limit=5`;
+      // const url = `${API_URL}/trips/getAllTrips?page=${pageNum}&limit=5`;
+      const url = `${API_URL}/trips/public?page=${pageNum}&limit=5`;
+
       console.log("URL", url)
 
       const response = await fetch(url, {
@@ -42,6 +44,9 @@ export default function Home() {
     ;
 
       const data = await response.json();
+//       console.log("response status:", response.status);
+// console.log("response data:", data);
+
 if (!response.ok || !Array.isArray(data.trips)) {
   throw new Error("Failed to fetch trips");
 }

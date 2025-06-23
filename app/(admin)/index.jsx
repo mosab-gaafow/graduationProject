@@ -21,7 +21,9 @@ export default function AdminHome() {
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log(res)
       const data = await res.json();
+      console.log(data)
       setStats(data);
     } catch (err) {
       console.error("Error fetching summary stats:", err.message);
