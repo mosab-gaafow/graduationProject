@@ -8,7 +8,18 @@ export const useAuthStore = create((set) => ({
     isLoading: false,
     isCheckingAuth: true,
 
-  
+    setUser: async (updatedUser) => {
+        try {
+            // Merge with existing user data
+            set((state) => {
+                const mergedUser = {...state.user, ...updatedUser};
+                AsyncStorage.setItem('user', JSON.stringify(mergedUser));
+                return { user: mergedUser };
+            });
+        } catch (e) {
+            console.error("Failed to update user:", e);
+        }
+    },
 
     
     register: async (name, phone, email, password) => {
@@ -83,36 +94,7 @@ export const useAuthStore = create((set) => ({
         }
     },
 
-    // login: async(email, password) => {
-    //     try{
-
-
-    //         const response = await fetch(`${API_URL}/auth/login`, {
-    //             method: "POST",
-    //             headers: {
-    //                 "Content-Type": "application/json",
-    //             },
-    //             body: JSON.stringify({
-    //                 email,
-    //                 password,
-    //             }),
-    //         });
-
-    //         const data = await response.json();
-    //        if(!response.ok)  throw new Error(data.message || "Something went wrong!");
-
-    //        await AsyncStorage.setItem("user", JSON.stringify(data.user));
-    //        await AsyncStorage.setItem("token", data.token);
-
-    //        set({user: data.user, token: data.token, isLoading: false});
-
-    //        return {success: true};
-
-    //     }catch(e){
-    //         set({isLoading: false});
-    //         return {success: false, error: e.message || "Something went wrong!"};
-    //     }
-    // }
+   
 
     login: async (email, password) => {
   try {

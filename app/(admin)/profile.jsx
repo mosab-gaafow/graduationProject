@@ -150,59 +150,87 @@ export default function AdminProfile() {
       ]);
     };
 
-  const handleProfileUpdate = async () => {
-    if (profileData.password && profileData.password !== profileData.confirmPassword) {
-      setError("Passwords don't match");
+    const handleProfileUpdate = async () => {
+  // Validate password match if password is provided
+  if (profileData.password && profileData.password !== profileData.confirmPassword) {
+    setError("Passwords don't match");
+    return;
+  }
+
+  // Validate password length if provided
+  if (profileData.password && profileData.password.length < 6) {
+    setError("Password must be at least 6 characters");
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+
+    // Construct payload with undefined instead of empty strings
+    const payload = {
+      name: profileData.name || undefined,
+      email: profileData.email || undefined,
+      phone: profileData.phone || undefined,
+      password: profileData.password || undefined
+    };
+
+    // console.log("Sending payload:", payload); // Debug log
+
+    const response = await fetch(`${API_URL}/admin/update-profile`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    // console.log("Response status:", response.status); // Debug log
+
+    // Handle token expiration
+    if (response.status === 401) {
+      logout();
+      Alert.alert("Session Expired", "Please login again");
       return;
     }
 
-    try {
-      setIsLoading(true);
-      setError("");
-      setSuccess("");
+    const textResponse = await response.text();
+    const data = textResponse ? JSON.parse(textResponse) : {};
 
-      const payload = {
-        name: profileData.name,
-        email: profileData.email,
-        phone: profileData.phone,
-      };
-
-      // Only include password if it's not empty
-      if (profileData.password) {
-        payload.password = profileData.password;
-      }
-
-      const response = await fetch(`${API_URL}/admin/update-profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to update profile");
-      }
-
-      // Update local user data
-      setUser({
-        ...user,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-      });
-
-      setSuccess("Profile updated successfully");
-      setProfileData((prev) => ({ ...prev, password: "", confirmPassword: "" }));
-      setIsEditing(false);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+    if (!response.ok) {
+      throw new Error(data.error || data.message || "Failed to update profile");
     }
-  };
+
+    // Update local state
+    const updatedUser = {
+      ...user,
+      ...data.user, // Use the returned user data from backend
+    };
+
+    await setUser(updatedUser);
+
+    // Update form state
+    setProfileData({
+      ...updatedUser,
+      password: "",
+      confirmPassword: ""
+    });
+
+    setSuccess("Profile updated successfully!");
+    setIsEditing(false);
+  } catch (err) {
+    console.error("Full error details:", {
+      message: err.message,
+      stack: err.stack
+    });
+    setError(err.message.includes("500") 
+      ? "Server error. Please try again later." 
+      : err.message
+    );
+  }
+};
 
   return (
     <ScrollView style={designStyles.container}>
