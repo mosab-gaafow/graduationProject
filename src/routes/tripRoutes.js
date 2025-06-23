@@ -203,31 +203,21 @@ const trip = await prisma.trip.update({
   }
 });
 
-// Public route to show available trips (for travelers)
-router.get('/public', protectRoute, async (req, res) => {
+
+router.get('/public', async (req, res) => {
   try {
     const { origin, destination, date, page = 1, limit = 10, status } = req.query;
 
-    // const filters = {
-    //   isDeleted: false,
-    //   availableSeats: { gt: 0 },
-    //   // Optional: only future trips
-    //   date: {
-    //     gte: new Date(new Date().setHours(0, 0, 0, 0)),
-    //   },
-    // };
-
     const filters = {
-  isDeleted: false,
-  date: {
-    gte: new Date(new Date().setHours(0, 0, 0, 0)),
-  },
-};
-
+      isDeleted: false,
+      date: {
+        gte: new Date(new Date().setHours(0, 0, 0, 0)),
+      },
+    };
 
     if (origin) filters.origin = { contains: origin, mode: 'insensitive' };
     if (destination) filters.destination = { contains: destination, mode: 'insensitive' };
-    if (date) filters.date = new Date(date);
+    if (date) filters.date = { equals: new Date(date) }; // ✅ safe override
     if (status) filters.status = status;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -259,24 +249,16 @@ router.get('/public', protectRoute, async (req, res) => {
       },
     });
 
-    // Recalculate availableSeats in real-time
-    // const formattedTrips = trips.map((trip) => {
-    //   const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
-    //   return {
-    //     ...trip,
-    //     availableSeats: trip.totalSeats - booked,
-    //   };
-    // });
-
-    const formattedTrips = trips.map((trip) => {
-  const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
-  const available = trip.totalSeats - booked;
-  return {
-    ...trip,
-    availableSeats: available,
-  };
-}).filter(t => t.availableSeats > 0); // ✅ Only return trips that still have seats
-
+    const formattedTrips = trips
+      .map((trip) => {
+        const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
+        const available = trip.totalSeats - booked;
+        return {
+          ...trip,
+          availableSeats: available,
+        };
+      })
+      .filter((t) => t.availableSeats > 0); // ✅ filter safely
 
     res.json({
       trips: formattedTrips,
@@ -285,10 +267,98 @@ router.get('/public', protectRoute, async (req, res) => {
       currentPage: parseInt(page),
     });
   } catch (error) {
-    console.error("Public trip fetch error:", error.message);
-    res.status(500).json({ error: 'Failed to get public trips' });
+    console.error("🔥 /public route error:", error);
+    res.status(500).json({ error: 'Failed to get public trips', details: error.message });
   }
 });
+
+
+// // Public route to show available trips (for travelers)
+// router.get('/public',  async (req, res) => {
+//   try {
+//     const { origin, destination, date, page = 1, limit = 10, status } = req.query;
+
+//     // const filters = {
+//     //   isDeleted: false,
+//     //   availableSeats: { gt: 0 },
+//     //   // Optional: only future trips
+//     //   date: {
+//     //     gte: new Date(new Date().setHours(0, 0, 0, 0)),
+//     //   },
+//     // };
+
+//     const filters = {
+//   isDeleted: false,
+//   date: {
+//     gte: new Date(new Date().setHours(0, 0, 0, 0)),
+//   },
+// };
+
+
+//     if (origin) filters.origin = { contains: origin, mode: 'insensitive' };
+//     if (destination) filters.destination = { contains: destination, mode: 'insensitive' };
+//     if (date) filters.date = new Date(date);
+//     if (status) filters.status = status;
+
+//     const skip = (parseInt(page) - 1) * parseInt(limit);
+//     const take = parseInt(limit);
+
+//     const total = await prisma.trip.count({ where: filters });
+
+//     const trips = await prisma.trip.findMany({
+//       where: filters,
+//       skip,
+//       take,
+//       orderBy: { date: 'asc' },
+//       include: {
+//         user: {
+//           select: {
+//             name: true,
+//             phone: true,
+//           },
+//         },
+//         bookings: {
+//           where: {
+//             isDeleted: false,
+//             status: { in: ['PENDING', 'CONFIRMED'] },
+//           },
+//           select: {
+//             seatsBooked: true,
+//           },
+//         },
+//       },
+//     });
+
+//     // Recalculate availableSeats in real-time
+//     // const formattedTrips = trips.map((trip) => {
+//     //   const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
+//     //   return {
+//     //     ...trip,
+//     //     availableSeats: trip.totalSeats - booked,
+//     //   };
+//     // });
+
+//     const formattedTrips = trips.map((trip) => {
+//   const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
+//   const available = trip.totalSeats - booked;
+//   return {
+//     ...trip,
+//     availableSeats: available,
+//   };
+// }).filter(t => t.availableSeats > 0); // ✅ Only return trips that still have seats
+
+
+//     res.json({
+//       trips: formattedTrips,
+//       total,
+//       totalPages: Math.ceil(total / take),
+//       currentPage: parseInt(page),
+//     });
+//   } catch (error) {
+//     console.error("Public trip fetch error:", error.message);
+//     res.status(500).json({ error: 'Failed to get public trips' });
+//   }
+// });
 
 
 router.get("/ownerEarnings", protectRoute, async (req, res) => {
