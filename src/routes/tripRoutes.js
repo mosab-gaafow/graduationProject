@@ -113,6 +113,74 @@ router.get('/getAllTrips', protectRoute, async (req, res) => {
   }
 });
 
+router.get('/public', protectRoute, async (req, res) => {
+  try {
+    const { origin, destination, date, page = 1, limit = 10, status } = req.query;
+
+    const filters = {
+      isDeleted: false,
+      date: {
+        gte: new Date(new Date().setHours(0, 0, 0, 0)),
+      },
+    };
+
+    if (origin) filters.origin = { contains: origin, mode: 'insensitive' };
+    if (destination) filters.destination = { contains: destination, mode: 'insensitive' };
+    if (date) filters.date = { equals: new Date(date) }; // ✅ safe override
+    if (status) filters.status = status;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+
+    const total = await prisma.trip.count({ where: filters });
+
+    const trips = await prisma.trip.findMany({
+      where: filters,
+      skip,
+      take,
+      orderBy: { date: 'asc' },
+      include: {
+        user: {
+          select: {
+            name: true,
+            phone: true,
+          },
+        },
+        bookings: {
+          where: {
+            isDeleted: false,
+            status: { in: ['PENDING', 'CONFIRMED'] },
+          },
+          select: {
+            seatsBooked: true,
+          },
+        },
+      },
+    });
+
+    const formattedTrips = trips
+      .map((trip) => {
+        const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
+        const available = trip.totalSeats - booked;
+        return {
+          ...trip,
+          availableSeats: available,
+        };
+      })
+      .filter((t) => t.availableSeats > 0); // ✅ filter safely
+
+    res.json({
+      trips: formattedTrips,
+      total,
+      totalPages: Math.ceil(total / take),
+      currentPage: parseInt(page),
+    });
+  } catch (error) {
+    console.error("🔥 /public route error:", error);
+    res.status(500).json({ error: 'Failed to get public trips', details: error.message });
+  }
+});
+
 
 
 // Get trip by ID
@@ -204,73 +272,6 @@ const trip = await prisma.trip.update({
 });
 
 
-router.get('/public', async (req, res) => {
-  try {
-    const { origin, destination, date, page = 1, limit = 10, status } = req.query;
-
-    const filters = {
-      isDeleted: false,
-      date: {
-        gte: new Date(new Date().setHours(0, 0, 0, 0)),
-      },
-    };
-
-    if (origin) filters.origin = { contains: origin, mode: 'insensitive' };
-    if (destination) filters.destination = { contains: destination, mode: 'insensitive' };
-    if (date) filters.date = { equals: new Date(date) }; // ✅ safe override
-    if (status) filters.status = status;
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const take = parseInt(limit);
-
-    const total = await prisma.trip.count({ where: filters });
-
-    const trips = await prisma.trip.findMany({
-      where: filters,
-      skip,
-      take,
-      orderBy: { date: 'asc' },
-      include: {
-        user: {
-          select: {
-            name: true,
-            phone: true,
-          },
-        },
-        bookings: {
-          where: {
-            isDeleted: false,
-            status: { in: ['PENDING', 'CONFIRMED'] },
-          },
-          select: {
-            seatsBooked: true,
-          },
-        },
-      },
-    });
-
-    const formattedTrips = trips
-      .map((trip) => {
-        const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
-        const available = trip.totalSeats - booked;
-        return {
-          ...trip,
-          availableSeats: available,
-        };
-      })
-      .filter((t) => t.availableSeats > 0); // ✅ filter safely
-
-    res.json({
-      trips: formattedTrips,
-      total,
-      totalPages: Math.ceil(total / take),
-      currentPage: parseInt(page),
-    });
-  } catch (error) {
-    console.error("🔥 /public route error:", error);
-    res.status(500).json({ error: 'Failed to get public trips', details: error.message });
-  }
-});
 
 
 // // Public route to show available trips (for travelers)
