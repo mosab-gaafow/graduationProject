@@ -72,29 +72,109 @@ router.patch('/verifyPayment/:bookingId', protectRoute, async (req, res) => {
 });
 
 
-// Admin: Update user info (name, email, role)
-router.patch('/updateUser/:id', protectRoute, async (req, res) => {
+
+
+
+// // Update user profile (excluding role)
+// router.put('/update-profile', protectRoute, async (req, res) => {
+//   try {
+//     const { name, email, password } = req.body;
+//     const userId = req.user.id; // Get the logged-in user ID
+
+//     // Validate input
+//     if (!name || !email || !password) {
+//       return res.status(400).json({ error: 'Name, Email, and Password are required' });
+//     }
+
+//     // Find the existing user
+//     const existingUser = await prisma.user.findUnique({
+//       where: { id: userId },
+//     });
+
+//     if (!existingUser) {
+//       return res.status(404).json({ error: 'User not found' });
+//     }
+
+//     // Hash password (make sure you have a hashing function in place)
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Update user data
+//     const updatedUser = await prisma.user.update({
+//       where: { id: userId },
+//       data: {
+//         name,
+//         email,
+//         password: hashedPassword,
+//       },
+//     });
+
+//     res.json(updatedUser);
+//   } catch (error) {
+//     console.error('Error updating profile:', error);
+//     res.status(500).json({ error: 'Failed to update profile', details: error.message });
+//   }
+// });
+
+
+router.put('/update-profile', protectRoute, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Access denied. Admins only.' });
+    const { name, email, phone, password } = req.body;
+    const userId = req.user.id;
+
+    // Basic validation
+    if (!name && !email && !phone && !password) {
+      return res.status(400).json({ error: 'At least one field must be provided for update' });
     }
 
-    const { id } = req.params;
-    const { name, email, role } = req.body;
-
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: {
-        name,
-        email,
-        role,
-      },
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({
+      where: { id: userId },
     });
 
-    res.json({ message: 'User updated successfully', user: updatedUser });
-  } catch (err) {
-    console.error('User update error:', err.message);
-    res.status(500).json({ message: 'Failed to update user' });
+    if (!existingUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Prepare update data
+    const updateData = {
+      name: name || existingUser.name,
+      email: email || existingUser.email,
+      phone: phone !== undefined ? phone : existingUser.phone,
+    };
+
+    // Only update password if provided
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
+
+    // Update user
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to update profile'
+    });
   }
 });
 
