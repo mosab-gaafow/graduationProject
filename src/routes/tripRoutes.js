@@ -213,6 +213,7 @@ if (!trip || trip.isDeleted || trip.userId !== req.user.id) {
 });
 
 // Update a trip
+// Update a trip
 router.put('/:id', protectRoute, async (req, res) => {
   try {
     const { id } = req.params;
@@ -221,6 +222,11 @@ router.put('/:id', protectRoute, async (req, res) => {
     // Log the incoming data to check if it's coming correctly
     console.log('Updating trip with ID:', id);
     console.log('Received data for update:', data);
+
+    // Check if the date is in correct ISO format
+    if (data.date && !Date.parse(data.date)) {
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
 
     // Ensure that the trip exists and belongs to the user
     const existing = await prisma.trip.findUnique({ where: { id } });
@@ -232,7 +238,10 @@ router.put('/:id', protectRoute, async (req, res) => {
     // Perform the update
     const trip = await prisma.trip.update({
       where: { id },
-      data,
+      data: {
+        ...data,
+        date: data.date ? new Date(data.date) : existing.date,  // Ensure date is converted correctly
+      },
     });
 
     // Log the updated trip data
@@ -250,6 +259,7 @@ router.put('/:id', protectRoute, async (req, res) => {
     });
   }
 });
+
 
 // Soft delete trip
 router.delete('/:id', protectRoute,  async (req, res) => {
@@ -279,96 +289,6 @@ const trip = await prisma.trip.update({
     res.status(500).json({ error: 'Failed to delete trip' });
   }
 });
-
-
-
-
-// // Public route to show available trips (for travelers)
-// router.get('/public',  async (req, res) => {
-//   try {
-//     const { origin, destination, date, page = 1, limit = 10, status } = req.query;
-
-//     // const filters = {
-//     //   isDeleted: false,
-//     //   availableSeats: { gt: 0 },
-//     //   // Optional: only future trips
-//     //   date: {
-//     //     gte: new Date(new Date().setHours(0, 0, 0, 0)),
-//     //   },
-//     // };
-
-//     const filters = {
-//   isDeleted: false,
-//   date: {
-//     gte: new Date(new Date().setHours(0, 0, 0, 0)),
-//   },
-// };
-
-
-//     if (origin) filters.origin = { contains: origin, mode: 'insensitive' };
-//     if (destination) filters.destination = { contains: destination, mode: 'insensitive' };
-//     if (date) filters.date = new Date(date);
-//     if (status) filters.status = status;
-
-//     const skip = (parseInt(page) - 1) * parseInt(limit);
-//     const take = parseInt(limit);
-
-//     const total = await prisma.trip.count({ where: filters });
-
-//     const trips = await prisma.trip.findMany({
-//       where: filters,
-//       skip,
-//       take,
-//       orderBy: { date: 'asc' },
-//       include: {
-//         user: {
-//           select: {
-//             name: true,
-//             phone: true,
-//           },
-//         },
-//         bookings: {
-//           where: {
-//             isDeleted: false,
-//             status: { in: ['PENDING', 'CONFIRMED'] },
-//           },
-//           select: {
-//             seatsBooked: true,
-//           },
-//         },
-//       },
-//     });
-
-//     // Recalculate availableSeats in real-time
-//     // const formattedTrips = trips.map((trip) => {
-//     //   const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
-//     //   return {
-//     //     ...trip,
-//     //     availableSeats: trip.totalSeats - booked,
-//     //   };
-//     // });
-
-//     const formattedTrips = trips.map((trip) => {
-//   const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
-//   const available = trip.totalSeats - booked;
-//   return {
-//     ...trip,
-//     availableSeats: available,
-//   };
-// }).filter(t => t.availableSeats > 0); // ✅ Only return trips that still have seats
-
-
-//     res.json({
-//       trips: formattedTrips,
-//       total,
-//       totalPages: Math.ceil(total / take),
-//       currentPage: parseInt(page),
-//     });
-//   } catch (error) {
-//     console.error("Public trip fetch error:", error.message);
-//     res.status(500).json({ error: 'Failed to get public trips' });
-//   }
-// });
 
 
 router.get("/ownerEarnings", protectRoute, async (req, res) => {
