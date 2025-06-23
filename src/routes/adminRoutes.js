@@ -1,6 +1,7 @@
 import express from 'express';
 import prisma from '../../prisma/client.js';
 import protectRoute from '../middleware/auth.middleware.js';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
@@ -70,50 +71,6 @@ router.patch('/verifyPayment/:bookingId', protectRoute, async (req, res) => {
     res.status(500).json({ error: 'Failed to verify payment' });
   }
 });
-
-
-
-
-
-// // Update user profile (excluding role)
-// router.put('/update-profile', protectRoute, async (req, res) => {
-//   try {
-//     const { name, email, password } = req.body;
-//     const userId = req.user.id; // Get the logged-in user ID
-
-//     // Validate input
-//     if (!name || !email || !password) {
-//       return res.status(400).json({ error: 'Name, Email, and Password are required' });
-//     }
-
-//     // Find the existing user
-//     const existingUser = await prisma.user.findUnique({
-//       where: { id: userId },
-//     });
-
-//     if (!existingUser) {
-//       return res.status(404).json({ error: 'User not found' });
-//     }
-
-//     // Hash password (make sure you have a hashing function in place)
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     // Update user data
-//     const updatedUser = await prisma.user.update({
-//       where: { id: userId },
-//       data: {
-//         name,
-//         email,
-//         password: hashedPassword,
-//       },
-//     });
-
-//     res.json(updatedUser);
-//   } catch (error) {
-//     console.error('Error updating profile:', error);
-//     res.status(500).json({ error: 'Failed to update profile', details: error.message });
-//   }
-// });
 
 
 router.put('/update-profile', protectRoute, async (req, res) => {
