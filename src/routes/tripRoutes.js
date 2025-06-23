@@ -218,27 +218,36 @@ router.put('/:id', protectRoute, async (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
-    // const existing = await prisma.trip.findUnique({ where: { id } });
-    // if (!existing || existing.isDeleted) {
-    //   return res.status(404).json({ error: 'Trip not found or already deleted' });
-    // }
+    // Log the incoming data to check if it's coming correctly
+    console.log('Updating trip with ID:', id);
+    console.log('Received data for update:', data);
 
+    // Ensure that the trip exists and belongs to the user
     const existing = await prisma.trip.findUnique({ where: { id } });
 
-if (!existing || existing.isDeleted || existing.userId !== req.user.id) {
-  return res.status(404).json({ error: 'Trip not found or unauthorized' });
-}
+    if (!existing || existing.isDeleted || existing.userId !== req.user.id) {
+      return res.status(404).json({ error: 'Trip not found or unauthorized' });
+    }
 
-
+    // Perform the update
     const trip = await prisma.trip.update({
       where: { id },
       data,
     });
-    
+
+    // Log the updated trip data
+    console.log('Updated trip:', trip);
+
     res.json(trip);
   } catch (error) {
+    // Log the error with the full details
     console.error('Update trip error:', error);
-    res.status(500).json({ error: 'Failed to update trip' });
+
+    // Return a detailed error response
+    res.status(500).json({
+      error: 'Failed to update trip',
+      details: error.message, // Include error details in the response
+    });
   }
 });
 
