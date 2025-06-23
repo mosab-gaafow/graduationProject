@@ -246,3 +246,4 @@ router.get("/ownerEarnings", protectRoute, async (req, res) => {
   }
 });
 
+export default router;

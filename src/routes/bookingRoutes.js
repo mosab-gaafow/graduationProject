@@ -234,8 +234,6 @@ router.put("/:id", async (req, res) => {
 });
 
 
-
-
 //  DELETE booking
 router.delete("/:id", async (req, res) => {
   try {

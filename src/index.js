@@ -3,10 +3,11 @@ import authRoutes from './routes/authRoutes.js';
 import { connectDB } from './lib/db.js';
 import cors from 'cors';
 import job from './lib/cron.js';
-import tripRoutes from './routes/tripRoutes.js'
+
 import bookingRoutes from './routes/bookingRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import tripRoutes from './routes/tripRoutes.js';
 import dotenv from 'dotenv';
 dotenv.config(); 
 
