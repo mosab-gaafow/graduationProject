@@ -208,14 +208,22 @@ router.get('/public', protectRoute, async (req, res) => {
   try {
     const { origin, destination, date, page = 1, limit = 10, status } = req.query;
 
+    // const filters = {
+    //   isDeleted: false,
+    //   availableSeats: { gt: 0 },
+    //   // Optional: only future trips
+    //   date: {
+    //     gte: new Date(new Date().setHours(0, 0, 0, 0)),
+    //   },
+    // };
+
     const filters = {
-      isDeleted: false,
-      availableSeats: { gt: 0 },
-      // Optional: only future trips
-      date: {
-        gte: new Date(new Date().setHours(0, 0, 0, 0)),
-      },
-    };
+  isDeleted: false,
+  date: {
+    gte: new Date(new Date().setHours(0, 0, 0, 0)),
+  },
+};
+
 
     if (origin) filters.origin = { contains: origin, mode: 'insensitive' };
     if (destination) filters.destination = { contains: destination, mode: 'insensitive' };
@@ -252,13 +260,23 @@ router.get('/public', protectRoute, async (req, res) => {
     });
 
     // Recalculate availableSeats in real-time
+    // const formattedTrips = trips.map((trip) => {
+    //   const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
+    //   return {
+    //     ...trip,
+    //     availableSeats: trip.totalSeats - booked,
+    //   };
+    // });
+
     const formattedTrips = trips.map((trip) => {
-      const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
-      return {
-        ...trip,
-        availableSeats: trip.totalSeats - booked,
-      };
-    });
+  const booked = trip.bookings.reduce((sum, b) => sum + b.seatsBooked, 0);
+  const available = trip.totalSeats - booked;
+  return {
+    ...trip,
+    availableSeats: available,
+  };
+}).filter(t => t.availableSeats > 0); // ✅ Only return trips that still have seats
+
 
     res.json({
       trips: formattedTrips,
