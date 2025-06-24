@@ -73,9 +73,9 @@ export default function OwnerHome() {
   return (
     <ScrollView style={{ padding: 20, backgroundColor: COLORS.background }}>
       <Text style={styles.quickTextTitle}>📦 Your Trip Bookings</Text>
-      <TouchableOpacity onPress={logout}>
+      {/* <TouchableOpacity onPress={logout}>
         <Text style={{ color: COLORS.primary, marginTop: 20 }}>Logout</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
 
       {bookings.length === 0 && (
         <Text style={{ marginTop: 20, color: COLORS.textSecondary }}>No bookings yet.</Text>
