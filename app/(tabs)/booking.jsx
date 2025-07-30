@@ -18,6 +18,7 @@ import COLORS from "../../constants/color";
 import DropDownPicker from "react-native-dropdown-picker";
 import { useRouter } from "expo-router";
 import { Linking } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 
 export default function BookingForm() {
   const { token } = useAuthStore();
@@ -101,57 +102,136 @@ export default function BookingForm() {
   // };
 
 
+  // const handleSubmit = async () => {
+  //   if (!tripId || !seatsBooked) {
+  //     Alert.alert("Missing Fields", "Please select a trip and enter number of seats.");
+  //     return;
+  //   }
+  
+  //   try {
+  //     setLoading(true);
+  
+  //     // Step 1: Register Booking
+  //     const res = await fetch(`${API_URL}/bookings/registerBooking`, {
+  //       method: "POST",
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         tripId,
+  //         seatsBooked: parseInt(seatsBooked),
+  //       }),
+  //     });
+  
+  //     const data = await res.json();
+  //     if (!res.ok) throw new Error(data.error || "Booking failed");
+  
+  //     const selectedTrip = trips.find((t) => t.id === tripId);
+  //     const amount = selectedTrip?.price || 0;
+  //     const ownerPhone = selectedTrip?.user?.phone;
+  
+  //     if (!ownerPhone) {
+  //       Alert.alert("Missing Info", "Trip owner phone not found.");
+  //       return;
+  //     }
+  
+  //     // Step 2: Launch native EVC Plus USSD
+  //     const ussdCode = `tel:*712*${ownerPhone}*${amount}%23`; // `%23` is #
+  //     Alert.alert("Payment", "Opening your dialer to pay via EVC Plus...");
+  
+  //     setTimeout(() => {
+  //       Linking.openURL(ussdCode);
+  //     }, 1000);
+  
+  //     setTripId(null);
+  //     setSeatsBooked('');
+  //   } catch (err) {
+  //     Alert.alert("Error", err.message || "Something went wrong");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+  
   const handleSubmit = async () => {
-    if (!tripId || !seatsBooked) {
-      Alert.alert("Missing Fields", "Please select a trip and enter number of seats.");
-      return;
-    }
-  
-    try {
-      setLoading(true);
-  
-      // Step 1: Register Booking
-      const res = await fetch(`${API_URL}/bookings/registerBooking`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+  if (!tripId || !seatsBooked) {
+    Alert.alert("Missing Fields", "Please select a trip and enter number of seats.");
+    return;
+  }
+
+  const selectedTrip = trips.find((t) => t.id === tripId);
+  const amount = selectedTrip?.price || 0;
+  const ownerPhone = selectedTrip?.user?.phone;
+
+  if (!ownerPhone) {
+    Alert.alert("Missing Info", "Trip owner phone not found.");
+    return;
+  }
+
+  // Step 1: Ask for confirmation first
+  Alert.alert(
+    "Confirm Payment",
+    `Are you sure you want to send $${amount} to ${ownerPhone}?`,
+    [
+      {
+        text: "No",
+        style: "cancel",
+      },
+      {
+        text: "Yes, Proceed",
+        onPress: async () => {
+          try {
+            setLoading(true);
+            const res = await fetch(`${API_URL}/bookings/registerBooking`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                tripId,
+                seatsBooked: parseInt(seatsBooked),
+              }),
+            });
+
+            if (!res.ok) {
+              const errorData = await res.json();
+              throw new Error(errorData.error || "Booking failed");
+            }
+
+            const data = await res.json();
+
+            // Step 2: Show USSD copy & open dialer
+            Alert.alert(
+              "Payment Instructions",
+              `Dial the following USSD:\n*712*${ownerPhone}*${amount}#`,
+              [
+                {
+                  text: "Copy & Open Dialer",
+                  onPress: () => {
+                    Clipboard.setString(`*712*${ownerPhone}*${amount}#`);
+                    Linking.openURL("tel:");
+                  },
+                },
+                { text: "Cancel", style: "cancel" },
+              ]
+            );
+
+            // Reset form
+            setTripId(null);
+            setSeatsBooked("");
+          } catch (err) {
+            Alert.alert("Error", err.message || "Something went wrong");
+            console.error("Booking error:", err);
+          } finally {
+            setLoading(false);
+          }
         },
-        body: JSON.stringify({
-          tripId,
-          seatsBooked: parseInt(seatsBooked),
-        }),
-      });
-  
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Booking failed");
-  
-      const selectedTrip = trips.find((t) => t.id === tripId);
-      const amount = selectedTrip?.price || 0;
-      const ownerPhone = selectedTrip?.user?.phone;
-  
-      if (!ownerPhone) {
-        Alert.alert("Missing Info", "Trip owner phone not found.");
-        return;
-      }
-  
-      // Step 2: Launch native EVC Plus USSD
-      const ussdCode = `tel:*712*${ownerPhone}*${amount}%23`; // `%23` is #
-      Alert.alert("Payment", "Opening your dialer to pay via EVC Plus...");
-  
-      setTimeout(() => {
-        Linking.openURL(ussdCode);
-      }, 1000);
-  
-      setTripId(null);
-      setSeatsBooked('');
-    } catch (err) {
-      Alert.alert("Error", err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
-  
+      },
+    ]
+  );
+};
+
   
   return (
     <KeyboardAvoidingView
