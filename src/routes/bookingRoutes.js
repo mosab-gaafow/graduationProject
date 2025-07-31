@@ -156,20 +156,7 @@ router.get("/getAllBookings", async (req, res) => {
   }
 });
 
-//  GET single booking by ID
-router.get("/:id", async (req, res) => {
-  try {
-    const booking = await prisma.booking.findUnique({
-      where: { id: req.params.id },
-      include: { trip: true, user: true },
-    });
 
-    if (!booking) return res.status(404).json({ message: "Booking not found" });
-    res.json(booking);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 //  UPDATE booking
 //  UPDATE booking
@@ -353,5 +340,19 @@ router.get("/ownerEarnings", protectRoute, async (req, res) => {
   }
 });
 
+//  GET single booking by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const booking = await prisma.booking.findUnique({
+      where: { id: req.params.id },
+      include: { trip: true, user: true },
+    });
+
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+    res.json(booking);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 export default router;
