@@ -32,26 +32,95 @@ router.get('/summaryStats', protectRoute, async (req, res) => {
   }
 });
 
-router.get('/vehcilestats', protectRoute, async (req, res) => {
+// router.get('/vehcilestats', protectRoute, async (req, res) => {
+
+//   try {
+//     if (req.user.role !== 'admin') {
+//       return res.status(403).json({ message: "Access denied. Admins only." });
+//     }
+
+//     const [vehicleCount, tripCount, userCount] = await Promise.all([
+//       prisma.vehicle.count({ where: { isDeleted: false } }),
+//       prisma.trip.count({ where: { isDeleted: false } }),
+//       prisma.user.count(),
+//     ]);
+
+//     res.json({
+//       totalVehicles: vehicleCount,
+//       totalTrips: tripCount,
+//       totalUsers: userCount,
+//     });
+//   } catch (err) {
+//     console.error('Admin stats error:', err.message);
+//     res.status(500).json({ message: "Failed to load statistics" });
+//   }
+// });
+
+
+
+router.get("/vehiclestats", protectRoute, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: "Access denied. Admins only." });
-    }
+    const userId = req.user.id;
 
-    const [vehicleCount, tripCount, userCount] = await Promise.all([
-      prisma.vehicle.count({ where: { isDeleted: false } }),
-      prisma.trip.count({ where: { isDeleted: false } }),
-      prisma.user.count(),
-    ]);
-
-    res.json({
-      totalVehicles: vehicleCount,
-      totalTrips: tripCount,
-      totalUsers: userCount,
+    // ✅ Total Vehicles
+    const totalVehicles = await prisma.vehicle.count({
+      where: {
+        userId,
+        isDeleted: false,
+      },
     });
+
+    // ✅ Total Trips
+    const totalTrips = await prisma.trip.count({
+      where: {
+        userId,
+        isDeleted: false,
+      },
+    });
+
+    // ✅ Total Bookings (for trips owned by this user)
+    const ownedTrips = await prisma.trip.findMany({
+      where: {
+        userId,
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+      },
+    });
+    const tripIds = ownedTrips.map((t) => t.id);
+
+    const totalBookings = await prisma.booking.count({
+      where: {
+        tripId: { in: tripIds },
+      },
+    });
+
+    // ✅ Total Earnings
+    const paidBookings = await prisma.booking.findMany({
+      where: {
+        tripId: { in: tripIds },
+        paymentStatus: "paid",
+        paymentVerified: true,
+      },
+      select: {
+        amountPaid: true,
+      },
+    });
+
+    const totalEarnings = paidBookings.reduce((sum, b) => sum + (b.amountPaid || 0), 0);
+
+    // ✅ Respond
+    res.json({
+      totalVehicles,
+      totalTrips,
+      totalBookings,
+      totalEarnings,
+    });
+
   } catch (err) {
-    console.error('Admin stats error:', err.message);
-    res.status(500).json({ message: "Failed to load statistics" });
+    console.error("Error in vehiclestats:", err.message);
+    res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
 
