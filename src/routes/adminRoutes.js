@@ -32,31 +32,6 @@ router.get('/summaryStats', protectRoute, async (req, res) => {
   }
 });
 
-// router.get('/vehcilestats', protectRoute, async (req, res) => {
-
-//   try {
-//     if (req.user.role !== 'admin') {
-//       return res.status(403).json({ message: "Access denied. Admins only." });
-//     }
-
-//     const [vehicleCount, tripCount, userCount] = await Promise.all([
-//       prisma.vehicle.count({ where: { isDeleted: false } }),
-//       prisma.trip.count({ where: { isDeleted: false } }),
-//       prisma.user.count(),
-//     ]);
-
-//     res.json({
-//       totalVehicles: vehicleCount,
-//       totalTrips: tripCount,
-//       totalUsers: userCount,
-//     });
-//   } catch (err) {
-//     console.error('Admin stats error:', err.message);
-//     res.status(500).json({ message: "Failed to load statistics" });
-//   }
-// });
-
-
 
 router.get("/vehiclestats", protectRoute, async (req, res) => {
   try {
@@ -243,6 +218,32 @@ router.put('/update-profile', protectRoute, async (req, res) => {
         code: error.code
       } : undefined
     });
+  }
+});
+
+router.patch("/updateUser/:id", protectRoute, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, role } = req.body;
+
+    // Optional: Only allow if the logged-in user is admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied. Admins only." });
+    }
+
+    if (!name || !email || !role) {
+      return res.status(400).json({ message: "Name, email, and role are required." });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { name, email, role },
+    });
+
+    res.json({ success: true, user: updatedUser });
+  } catch (err) {
+    console.error("User update error:", err.message);
+    res.status(500).json({ message: "Failed to update user" });
   }
 });
 
