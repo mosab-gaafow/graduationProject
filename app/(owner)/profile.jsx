@@ -82,18 +82,21 @@ export default function Profile() {
   };
 
   const fetchStats = async () => {
-    try {
-      const res = await fetch(`${API_URL}/admin/vehcilestats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setStats(data);
-      }
-    } catch (e) {
-      console.error("Stats fetch error:", e.message);
+  try {
+    const res = await fetch(`${API_URL}/admin/vehiclestats`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setStats(data);
+    } else {
+      console.warn("Failed to fetch stats", data);
     }
-  };
+  } catch (e) {
+    console.error("Stats fetch error:", e.message);
+  }
+};
+
 
   useEffect(() => {
     fetchStats();
@@ -189,21 +192,44 @@ export default function Profile() {
       </TouchableOpacity>
 
       <View style={ownerStyle.summaryCard}>
+         <TouchableOpacity
+  onPress={() => {
+  fetchStats();
+  }}
+  style={{
+    backgroundColor: COLORS.primary,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginTop: 12,
+  }}
+>
+  <Text style={{ color: "#fff", fontWeight: "bold" }}>🔄 Refresh</Text>
+</TouchableOpacity>
         <Text style={ownerStyle.sectionTitle}>📊 Summary</Text>
-        <View style={ownerStyle.statsGrid}>
-          <View style={ownerStyle.statBox}>
-            <Text style={ownerStyle.statValue}>{stats.totalVehicles}</Text>
-            <Text style={ownerStyle.statLabel}>Vehicles</Text>
-          </View>
-          <View style={ownerStyle.statBox}>
-            <Text style={ownerStyle.statValue}>{stats.totalTrips}</Text>
-            <Text style={ownerStyle.statLabel}>Trips</Text>
-          </View>
-          <View style={ownerStyle.statBox}>
-            <Text style={ownerStyle.statValue}>{stats.totalUsers}</Text>
-            <Text style={ownerStyle.statLabel}>Users</Text>
-          </View>
-        </View>
+       <View style={ownerStyle.statsGrid}>
+  <View style={ownerStyle.statBox}>
+    <Text style={ownerStyle.statValue}>{stats.totalVehicles}</Text>
+    <Text style={ownerStyle.statLabel}>Vehicles</Text>
+  </View>
+  <View style={ownerStyle.statBox}>
+    <Text style={ownerStyle.statValue}>{stats.totalTrips}</Text>
+    <Text style={ownerStyle.statLabel}>Trips</Text>
+  </View>
+  <View style={ownerStyle.statBox}>
+    <Text style={ownerStyle.statValue}>{stats.totalBookings}</Text>
+    <Text style={ownerStyle.statLabel}>Bookings</Text>
+  </View>
+</View>
+
+<View style={{ marginTop: 16, alignItems: 'center' }}>
+  <Text style={[ownerStyle.statLabel, { fontSize: 16 }]}>💰 Total Earnings</Text>
+  <Text style={{ fontSize: 22, fontWeight: 'bold', color: COLORS.textPrimary }}>
+    ${stats.totalEarnings?.toFixed(2) || "0.00"}
+  </Text>
+</View>
+
       </View>
     </View>
   );

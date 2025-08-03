@@ -40,30 +40,53 @@ export default function OwnerHome() {
     EXPIRED: COLORS.textSecondary,
   };
   
+  const [earnings, setEarnings] = useState({ totalEarnings: 0, totalBookings: 0 });
+
+const fetchEarnings = async () => {
+  try {
+    const res = await fetch(`${API_URL}/bookings/ownerEarnings`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setEarnings(data);
+    } else {
+      console.warn("Earnings fetch failed:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching earnings:", err.message);
+  }
+};
+
 
   const updateBookingStatus = async (bookingId, newStatus) => {
-    try {
-      const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
+  try {
+    const res = await fetch(`${API_URL}/bookings/${bookingId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to update status");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to update status");
 
-      Alert.alert("Success", `Booking ${newStatus.toLowerCase()} successfully.`);
-      fetchBookings();
-    } catch (err) {
-      Alert.alert("Error", err.message);
-    }
-  };
+    Alert.alert("Success", `Booking ${newStatus.toLowerCase()} successfully.`);
+    fetchBookings();
+    if (newStatus === "CONFIRMED") fetchEarnings(); // ✅ update earnings
+  } catch (err) {
+    Alert.alert("Error", err.message);
+  }
+};
+
 
   useEffect(() => {
     fetchBookings();
+    fetchEarnings();
   }, []);
 
   if (loading) {
@@ -72,10 +95,43 @@ export default function OwnerHome() {
 
   return (
     <ScrollView style={{ padding: 20, backgroundColor: COLORS.background }}>
+      <TouchableOpacity
+  onPress={() => {
+    fetchBookings();
+    fetchEarnings();
+  }}
+  style={{
+    backgroundColor: COLORS.primary,
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginTop: 12,
+  }}
+>
+  <Text style={{ color: "#fff", fontWeight: "bold" }}>🔄 Refresh</Text>
+</TouchableOpacity>
+
       <Text style={styles.quickTextTitle}>📦 Your Trip Bookings</Text>
-      {/* <TouchableOpacity onPress={logout}>
-        <Text style={{ color: COLORS.primary, marginTop: 20 }}>Logout</Text>
-      </TouchableOpacity> */}
+
+      <View
+  style={{
+    backgroundColor: "#E8F5E9",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 10,
+    borderColor: "#C8E6C9",
+    borderWidth: 1,
+  }}
+>
+  <Text style={{ fontWeight: "bold", fontSize: 16, color: "#2E7D32" }}>
+    💰 Total Earnings: ${earnings.totalEarnings}
+  </Text>
+  <Text style={{ color: COLORS.textSecondary, marginTop: 2 }}>
+    ✅ Total Confirmed Bookings: {earnings.totalBookings}
+  </Text>
+</View>
+
 
       {bookings.length === 0 && (
         <Text style={{ marginTop: 20, color: COLORS.textSecondary }}>No bookings yet.</Text>
